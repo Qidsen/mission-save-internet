@@ -1407,23 +1407,34 @@ function sortItems(R) { return R.items.map(function (it, i) { return { t: it[0],
 var PAGE = {
   choice: {
     max: function (pg) { return sumPts(pg.Q); },
-    init: function (pg, st) { if (!st.sel) st.sel = {}; if (!st.ord || st.ord.length !== pg.Q.length) st.ord = pg.Q.map(function (q) { return q.fixed ? q.opts.slice() : shuffle(q.opts); }); },
+    init: function (pg, st) {
+      if (!st.sel) st.sel = {};
+      if (!st.ord || st.ord.length !== pg.Q.length) st.ord = pg.Q.map(function (q) { return q.fixed ? q.opts.slice() : shuffle(q.opts); });
+      /* Порядок питань — випадковий для кожного учня (у межах свого блоку), щоб відповіді не йшли за схемою й не списувались */
+      if (!st.qord || st.qord.length !== pg.Q.length) {
+        var groups = [], last = {};
+        pg.Q.forEach(function (q, k) { if (!groups.length || q.head !== last.head) { groups.push([]); last = q; } groups[groups.length - 1].push(k); });
+        st.qord = [].concat.apply([], groups.map(function (g) { return shuffle(g); }));
+      }
+    },
     status: function (pg, st) { var a = pg.Q.filter(function (q, k) { return (st.sel[k] || []).length > 0; }).length; return ['Є відповідь', a, pg.Q.length]; },
     score: function (pg, st) { return choiceItems(pg, st).reduce(function (s, it, k) { return s + choicePts(it, st.sel[k] || []); }, 0); },
     rows: function (pg, st) {
-      return choiceItems(pg, st).map(function (it, k) {
-        var got = st.sel[k] || [], r = { q: it.text, mine: got.join('; ') || '—', right: it.correct.join('; '), ok: choicePts(it, got) === it.pts };
+      var items = choiceItems(pg, st);
+      return st.qord.map(function (k) {
+        var it = items[k], got = st.sel[k] || [], r = { q: it.text, mine: got.join('; ') || '—', right: it.correct.join('; '), ok: choicePts(it, got) === it.pts };
         if (it.multi) { r.got = choicePts(it, got); r.max = it.pts; r.miss = it.correct.filter(function (o) { return got.indexOf(o) < 0; }); r.extra = got.filter(function (o) { return it.correct.indexOf(o) < 0; }); }
         return r;
       });
     },
     render: function (pg, st, save) {
-      var box = h('div'), lastHead = null;
-      choiceItems(pg, st).forEach(function (it, k) {
+      var box = h('div'), lastHead = null, items = choiceItems(pg, st);
+      st.qord.forEach(function (k, pos) {
+        var it = items[k];
         if (it.head && it.head !== lastHead) { lastHead = it.head; box.appendChild(h('h3', { class: 'qhead', text: it.head })); }
         var card = h('div', { class: 'card q' }), slot = h('div');
         if (it.img) card.appendChild(photo(it.img, it.alt));
-        card.appendChild(h('div', { class: 'qtitle' }, [h('span', { class: 'qn', text: String(k + 1) }), h('b', { text: it.text })]));
+        card.appendChild(h('div', { class: 'qtitle' }, [h('span', { class: 'qn', text: String(pos + 1) }), h('b', { text: it.text })]));
         if (it.hint) card.appendChild(h('p', { class: 'muted', text: it.hint }));
         function draw() { slot.innerHTML = ''; slot.appendChild((it.view === 'addr' ? addrView : it.view === 'post' ? postView : optTiles)(it, st.sel[k] || [], pick)); }
         function pick(o) {
