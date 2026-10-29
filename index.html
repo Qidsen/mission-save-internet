@@ -259,9 +259,9 @@
 <script>
 'use strict';
 /* ===== НАЛАШТУВАННЯ =====
-   API_URL — адреса веб-застосунку Google Apps Script (див. leaderboard_backend.gs).
+   API_URL — адреса веб-застосунку Google Apps Script (код у папці apps-script).
    Порожньо = гра працює, але без таблиці лідерів і без надсилання результатів. */
-var API_URL = window.IMI_API_URL || '';
+var API_URL = window.IMI_API_URL || 'https://script.google.com/macros/s/AKfycbzJlD6XljFTVjfBgZENOVnR-Q7ge28AetWEev7W542yj8wfm5N8DzW_D8bH9LG0w8QQPg/exec';
 var CLASSES = ['5-А', '5-Б', '5-В', '5-Г'];
 /* Власні фото й відео для каруселі. Поклади файли в папку media поруч з index.html і додай рядки:
    { type: 'img',   src: 'media/router.jpg', title: 'Роутер', text: 'Підпис до фото' },

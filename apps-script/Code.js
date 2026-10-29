@@ -2,19 +2,12 @@
  * Таблиця результатів для гри-контрольної «Місія: Врятувати Інтернет» (версія 2, універсальна).
  * Автор гри: учитель інформатики Вовненко Ярослав Віталійович.
  *
- * Цей скрипт не залежить від складу рівнів і списку класів: колонки для рівнів і аркуші для класів
- * створюються автоматично. Тому після першого розгортання його НЕ потрібно змінювати, навіть якщо
- * в грі з'являться нові рівні.
+ * Скрипт не залежить від складу рівнів і списку класів: колонки рівнів і аркуші класів
+ * створюються автоматично, тож при зміні гри його не потрібно оновлювати.
  *
- * Налаштування (один раз):
- * 1. Створіть Google-таблицю -> Розширення -> Apps Script -> вставте цей код замість усього наявного.
- * 2. Змініть ADMIN_KEY нижче на власний пароль вчителя.
- * 3. Розгорнути -> Нове розгортання -> тип «Веб-застосунок»:
- *    «Виконувати від імені: Я», «Хто має доступ: Усі» -> Розгорнути -> дозволити доступ.
- * 4. Скопіюйте адресу веб-застосунку (https://script.google.com/macros/s/.../exec)
- *    і вставте її в index.html у змінну API_URL.
+ * Код викладається з папки apps-script командою `npx @google/clasp push` (див. .clasp.json).
+ * Пароль вчителя ADMIN_KEY лежить у config.js, який не зберігається в git.
  */
-var ADMIN_KEY = 'ЗМІНІТЬ-МЕНЕ';
 
 var BASE = ['Час', 'Клас', 'Прізвище', "Ім'я", 'Оцінка (12)', 'Бали', 'Максимум', '%', 'Зірок'];
 var CLASS_RE = /^\d{1,2}-[А-ЯІЇЄҐA-Z]$/;
@@ -44,6 +37,14 @@ function levelCol_(sh, head, title) {
   head.push(name);
   sh.getRange(1, head.length).setValue(name).setFontWeight('bold');
   return head.length - 1;
+}
+
+/* Запустіть один раз у редакторі Apps Script, щоб надати скрипту доступ до таблиці */
+function setup() {
+  ['5-А', '5-Б', '5-В', '5-Г'].forEach(sheet_);
+  var first = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Аркуш1') || SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Sheet1');
+  if (first && first.getLastRow() === 0 && SpreadsheetApp.getActiveSpreadsheet().getSheets().length > 1) SpreadsheetApp.getActiveSpreadsheet().deleteSheet(first);
+  Logger.log('Готово: аркуші класів створено.');
 }
 
 function doPost(e) {
