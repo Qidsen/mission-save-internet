@@ -397,7 +397,9 @@ function render(nodes) { app.innerHTML = ''; nodes.forEach(function (n) { if (n)
 
 /* ===== Оцінка ===== */
 function totals() { var sum = 0, max = 0, done = 0; LEVELS.forEach(function (l) { max += l.max; if (state.scores[l.id] != null) { sum += state.scores[l.id]; done++; } }); return { sum: sum, max: max, done: done, all: done === LEVELS.length }; }
-function gradeFor(sum, max) { return Math.max(1, Math.min(12, Math.round(12 * sum / max))); }
+/* М'яка шкала для 5 класу: 12 балів від 90 %, далі кожні 7 % — на бал менше */
+var GRADE_FROM = [90, 83, 76, 69, 62, 55, 48, 41, 34, 27, 20];
+function gradeFor(sum, max) { var p = max ? sum / max * 100 : 0; for (var i = 0; i < GRADE_FROM.length; i++) if (p >= GRADE_FROM[i] - 1e-9) return 12 - i; return 1; }
 function rankFor(p) { return p >= 0.9 ? 'Кіберкапітан' : p >= 0.7 ? 'Спецагент' : p >= 0.5 ? 'Агент' : p >= 0.3 ? 'Курсант' : 'Новобранець'; }
 
 /* ===== Зв'язок із таблицею ===== */
