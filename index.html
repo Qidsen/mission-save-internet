@@ -392,6 +392,11 @@
   .classchip { display:flex; align-items:center; gap: 10px; margin-top: 10px; padding: 10px 14px; border-radius: 14px; background: rgba(88,227,154,.1); border: 1px solid rgba(88,227,154,.45); }
   .classchip b { font-family: var(--display); font-size: 1.1rem; color: var(--green); }
   .linkbtn { margin-left: auto; background: none; border: 0; color: var(--cyan); font-weight: 800; cursor: pointer; text-decoration: underline; padding: 6px; }
+  .pwfield { position: relative; }
+  .pwfield input { width: 100%; padding-right: 56px; }
+  .pw-eye { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border: 0; border-radius: 12px; background: transparent; color: var(--muted); cursor: pointer; display:flex; align-items:center; justify-content:center; }
+  .pw-eye:hover, .pw-eye[aria-pressed="true"] { color: var(--cyan); background: rgba(53,224,240,.1); }
+  .pw-eye .ico { width: 26px; height: 26px; }
   @media (max-width: 420px) { body { font-size: 16.5px; } .slide { flex-basis: 90%; } .grade { font-size: 3.8rem; } .tabs .btn { font-size: .85rem; } .lv b { font-size: .92rem; } .lv .stars { font-size: 1rem; } }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
@@ -492,6 +497,8 @@ var ICONS = {
   bolt: '<polygon points="36,5 15,36 30,36 26,59 49,26 34,26" fill="currentColor"/>',
   shield: '<path d="M32 6l20 8v18c0 14-10 22-20 26C22 54 12 46 12 32V14z"/><path d="M22 32l8 8 14-16"/>',
   puzzle: '<path d="M10 20h14a6 6 0 1 1 12 0h14v14a6 6 0 1 0 0 12v10H36a6 6 0 1 0-12 0H10V46a6 6 0 1 0 0-12z"/>',
+  eye: '<path d="M4 32s10-18 28-18 28 18 28 18-10 18-28 18S4 32 4 32z"/><circle cx="32" cy="32" r="8"/>',
+  eyeoff: '<path d="M4 32s10-18 28-18 28 18 28 18-10 18-28 18S4 32 4 32z"/><circle cx="32" cy="32" r="8"/><path d="M10 54L54 10"/>',
   robot: '<rect x="13" y="20" width="38" height="30" rx="9"/><circle cx="25" cy="34" r="4"/><circle cx="39" cy="34" r="4"/><path d="M32 20v-7M26 44h12M7 31v8M57 31v8"/><circle cx="32" cy="10" r="3"/>',
   rocket: '<path d="M32 5c10 8 14 21 10 35H22C18 26 22 13 32 5z"/><circle cx="32" cy="23" r="5"/><path d="M22 38l-8 11 10-2M42 38l8 11-10-2M28 45l4 11 4-11"/>',
   gamepad: '<path d="M17 21h30a11 11 0 0 1 11 11v5a8 8 0 0 1-14 5l-4-5H24l-4 5a8 8 0 0 1-14-5v-5a11 11 0 0 1 11-11z"/><path d="M20 29v9M15.5 33.5h9"/><circle cx="42" cy="30" r="2.5" fill="currentColor"/><circle cx="48" cy="36" r="2.5" fill="currentColor"/>',
@@ -736,6 +743,7 @@ function showWelcome(msg, edit) {
     ['Правила', 'Рівні можна проходити в будь-якому порядку. Усередині рівня можна повертатися до попередньої частини й змінювати відповіді, а також вийти в меню й продовжити пізніше. Коли натиснеш «Завершити рівень», відповіді зафіксуються. Якщо браузер закриється або зникне інтернет, відкрий сторінку знову: гра продовжиться з місця зупинки. Підказок немає, працюй самостійно. Не виходь зі сторінки: перехід в іншу вкладку чи застосунок фіксується, і вчитель це бачить.'],
     ['Оцінка', 'Коли пройдеш усі рівні, одразу побачиш свою оцінку за 12-бальною шкалою. Результат автоматично потрапить до вчителя й до таблиці лідерів твого класу (там видно твоє ім\'я, прізвище й аватарку).']];
   render([
+    h('div', { class: 'topbar' }, [h('button', { class: 'btn alt', text: '‹ Інший код', onclick: function () { unstore('imi_code'); showGate(); } }), h('span', { class: 'muted', text: 'Клас ' + state.cls })]),
     h('h1', { text: TEST ? TEST.title : 'Контрольна з інформатики' }),
     TEST ? h('p', { class: 'lead', style: 'margin-top:-2px', text: TEST.label }) : null,
     h('div', { html: HERO }),
@@ -801,7 +809,7 @@ function showNoTest() {
     mascot('Для ' + gradeOf(state.cls) + ' класу зараз немає відкритої контрольної. Зачекай, поки вчитель її відкриє, і натисни «Перевірити ще раз».', 'happy'),
     h('div', { class: 'card row', style: 'justify-content:space-between' }, [h('span', { class: 'row', style: 'flex-wrap:nowrap;gap:12px' }, [avatar(state.av), h('span', {}, [h('b', { text: displayName() }), h('span', { class: 'muted', text: ', ' + state.cls })])]),
       h('button', { class: 'btn alt', style: 'min-height:40px;padding:6px 14px', text: 'Змінити', onclick: function () { showWelcome(null, true); } })]),
-    check]);
+    check, h('button', { class: 'btn alt big', style: 'margin-top:10px', text: '‹ Ввести інший код', onclick: function () { unstore('imi_code'); showGate(); } })]);
 }
 /* Учитель змінив код класу: просимо ввести новий */
 var codeAsked = false;
@@ -1039,6 +1047,14 @@ function showStaffLogin() {
   var tv = (location.hash || '').indexOf('#tv') === 0;
   var key = h('input', { type: 'password', placeholder: 'Пароль вчителя', autocomplete: 'current-password', 'aria-label': 'Пароль вчителя' });
   var btn = h('button', { class: 'btn big', text: 'Увійти', onclick: login });
+  /* Кнопка-«око»: показати чи сховати введений пароль */
+  var eye = h('button', { type: 'button', class: 'pw-eye', 'aria-label': 'Показати пароль', 'aria-pressed': 'false' }, [ico('eye', 'sm')]);
+  eye.addEventListener('click', function () {
+    var show = key.type === 'password'; key.type = show ? 'text' : 'password';
+    eye.innerHTML = ''; eye.appendChild(ico(show ? 'eyeoff' : 'eye', 'sm'));
+    eye.setAttribute('aria-label', show ? 'Сховати пароль' : 'Показати пароль'); eye.setAttribute('aria-pressed', show ? 'true' : 'false'); key.focus();
+  });
+  var pw = h('div', { class: 'pwfield' }, [key, eye]);
   key.addEventListener('keydown', function (e) { if (e.key === 'Enter') login(); });
   function login() {
     if (!key.value) { toast('Введи пароль вчителя.', 'bad'); return; }
@@ -1051,7 +1067,7 @@ function showStaffLogin() {
     }).catch(function () { btn.disabled = false; toast('Немає зв\'язку. Перевір інтернет.', 'bad'); });
   }
   render([h('div', { class: 'topbar' }, [h('button', { class: 'btn alt', text: '‹ До гри', onclick: function () { location.hash = ''; route(); } }), h('b', { text: tv ? 'Екран для телевізора' : 'Вхід для вчителя' })]),
-    h('div', { class: 'card login' }, [h('h2', { style: 'margin-top:0', text: 'Лише для вчителя' }), h('p', { class: 'muted', text: 'Щоб відкрити ' + (tv ? 'екран для телевізора' : 'панель вчителя') + ', введи пароль.' }), key, btn])]);
+    h('div', { class: 'card login' }, [h('h2', { style: 'margin-top:0', text: 'Лише для вчителя' }), h('p', { class: 'muted', text: 'Щоб відкрити ' + (tv ? 'екран для телевізора' : 'панель вчителя') + ', введи пароль.' }), pw, btn])]);
   setTimeout(function () { key.focus(); }, 50);
 }
 
