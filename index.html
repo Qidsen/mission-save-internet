@@ -714,7 +714,7 @@ function startLevel(l) {
 }
 
 function finishLevel(l, score) {
-  setProg(l.id, null);
+  setProg(l.id, null); CURFRAC = 0;
   setTimeout(sendProgress, 0);
   var st = starsFor(score, l.max);
   state.scores[l.id] = score;
@@ -832,12 +832,33 @@ var confirmAt = 0;
 /* Діалог підтвердження: браузер може вважати його виходом зі сторінки, тому позначаємо час */
 function ask(msg) { confirmAt = Date.now(); try { return window.confirm(msg); } finally { confirmAt = Date.now(); } }
 function fmtDur(ms) { var s = Math.round(ms / 1000), m = Math.floor(s / 60); return m ? m + ' хв ' + (s % 60) + ' с' : s + ' с'; }
-function sendProgress(prev) {
-  if (isTeacher() || onStaffPage() || !apiEnabled() || !profileOk() || !sstore('imi_started')) return;
+/* Частка відповідей у поточному рівні (0…1): робить відсоток прогресу плавним */
+var CURFRAC = 0;
+function progressNow() {
   var t = totals(), inLevel = CUR && state.scores[CUR.id] == null;
+  return { t: t, pct: Math.min(100, Math.round((t.done + (inLevel ? CURFRAC : 0)) / LEVELS.length * 100)),
+    now: t.all ? 'Завершив контрольну' : inLevel ? 'Рівень ' + (LEVELS.indexOf(CUR) + 1) + ': ' + CUR.title : 'Меню' };
+}
+function canReport() { return !isTeacher() && !onStaffPage() && apiEnabled() && profileOk() && !!sstore('imi_started'); }
+function sendProgress(prev) {
+  if (!canReport()) return;
+  var p = progressNow(), t = p.t;
   apiPost({ action: 'progress', first: state.first.trim(), last: state.last.trim(), cls: state.cls, done: t.done, total: LEVELS.length,
-    pct: Math.round(t.done / LEVELS.length * 100), now: t.all ? 'Завершив контрольну' : inLevel ? 'Рівень ' + (LEVELS.indexOf(CUR) + 1) + ': ' + CUR.title : 'Меню',
-    leaves: W.leaves, away: Math.round(W.away / 1000), fin: t.all, out: !!W.hiddenAt, av: state.av, ts: Date.now(), prev: prev || undefined }, true).catch(function () {});
+    pct: p.pct, now: p.now, leaves: W.leaves, away: Math.round(W.away / 1000), fin: t.all, out: !!W.hiddenAt, av: state.av, ts: Date.now(), prev: prev || undefined }, true).catch(function () {});
+  lastTick = p.pct + '|' + p.now;
+}
+/* Проміжне оновлення під час відповідей: не частіше ніж раз на 1,5 с і лише коли щось змінилося */
+var tickTimer = null, lastTick = '';
+function tickProgress() {
+  if (tickTimer || !canReport()) return;
+  tickTimer = setTimeout(function () {
+    tickTimer = null;
+    if (!canReport()) return;
+    var p = progressNow(), sig = p.pct + '|' + p.now;
+    if (sig === lastTick) return;
+    lastTick = sig;
+    apiPost({ action: 'tick', first: state.first.trim(), last: state.last.trim(), cls: state.cls, pct: p.pct, now: p.now, out: !!W.hiddenAt, ts: Date.now() }).catch(function () {});
+  }, 1500);
 }
 var blurTimer = null;
 function markHidden(viaBlur) {
@@ -889,12 +910,16 @@ function showAdmin(cls, tab) {
     var refBtn = h('button', { class: 'btn alt', text: 'Оновити', onclick: function () { loadLive(true); } });
     var stamp = h('span', { class: 'muted' }), list = h('div');
     box.appendChild(h('div', { class: 'card' }, [h('div', { class: 'row', style: 'justify-content:space-between' }, [h('div', {}, [h('b', { text: 'Прогрес ' + cls + ' зараз' }), h('div', {}, [stamp])]), h('div', { class: 'row' }, [refBtn, tvBtn])]),
-      h('p', { class: 'muted', style: 'margin:8px 0 0', text: 'Список оновлюється сам кожні 15 секунд. Виходи зі сторінки бачиш лише ти, на телевізорі їх немає.' })]));
+      h('p', { class: 'muted', style: 'margin:8px 0 0', text: 'Список оновлюється сам кожні 3 секунди. Виходи зі сторінки бачиш лише ти, на телевізорі їх немає.' })]));
     box.appendChild(list);
+    var busy = false;
     var loadLive = function (manual) {
+      if (busy || (!manual && document.hidden)) return;
       if (!apiEnabled()) { list.innerHTML = ''; list.appendChild(h('div', { class: 'warn', text: 'Таблиця не підключена (немає API_URL).' })); return; }
       if (!document.body.contains(list)) { stopAdminTimer(); return; }
+      busy = true;
       apiGet({ action: 'live', 'class': cls, key: k() }).then(function (res) {
+        busy = false;
         if (!res || res.error) { toast(adminErr(res && res.error), 'bad'); stopAdminTimer(); return; }
         stamp.textContent = 'Оновлено о ' + new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         list.innerHTML = '';
@@ -917,10 +942,10 @@ function showAdmin(cls, tab) {
         });
         list.appendChild(tb);
         if (manual) toast('Прогрес оновлено.', 'info');
-      }).catch(function () { if (manual) toast('Немає зв\'язку з таблицею.', 'bad'); });
+      }).catch(function () { busy = false; if (manual) toast('Немає зв\'язку з таблицею.', 'bad'); });
     };
     loadLive(false);
-    adminTimer = setInterval(function () { loadLive(false); }, 15000);
+    adminTimer = setInterval(function () { loadLive(false); }, 3000);
   }
 
   if (tab === 'results') {
@@ -991,11 +1016,15 @@ function showTV(cls) {
   document.body.classList.add('tvmode');
   var grid = h('div', { class: 'tv-grid' }), head = h('div', { class: 'tv-head' }), clock = h('span', { class: 'tv-clock' });
   render([h('div', { class: 'tv' }, [head, grid, h('div', { class: 'tv-foot' }, [clock].concat(CLASSES.map(function (c) { return h('button', { class: 'tv-cls' + (c === cls ? ' on' : ''), text: c, onclick: function () { location.hash = 'tv=' + encodeURIComponent(c); } }); })))])]);
+  var busy = false;
   function load() {
     if (!document.body.contains(grid)) { stopAdminTimer(); return; }
+    if (busy || document.hidden) return;
     clock.textContent = new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
     if (!apiEnabled()) { grid.innerHTML = ''; grid.appendChild(h('div', { class: 'tv-empty', text: 'Таблиця не підключена.' })); return; }
+    busy = true;
     apiGet({ action: 'tv', 'class': cls }).then(function (res) {
+      busy = false;
       var rows = (res && res.rows) || [];
       var total = rows.reduce(function (s, r) { return s + r.pct; }, 0), avg = rows.length ? Math.round(total / rows.length) : 0, fin = rows.filter(function (r) { return r.fin; }).length;
       head.innerHTML = '';
@@ -1011,10 +1040,10 @@ function showTV(cls) {
           h('div', { class: 'tv-bar' }, [h('i', { style: 'width:' + r.pct + '%' })]),
           h('small', { text: r.fin ? 'Місію виконано!' : r.now && r.now.indexOf('Рівень') === 0 ? r.now : 'Готується до наступного рівня' })]));
       });
-    }).catch(function () {});
+    }).catch(function () { busy = false; });
   }
   load();
-  adminTimer = setInterval(load, 15000);
+  adminTimer = setInterval(load, 3000);
 }
 
 function route() {
@@ -1035,7 +1064,7 @@ function stopTimers() { timers.forEach(clearInterval); timers = []; }
 /* Вийти з рівня в меню: прогрес рівня вже збережено на пристрої */
 function exitLevel() {
   if (CUR && CUR.id === 'blitz' && !ask('Вийти з «Блискавки»? Поточне питання буде зараховано як помилку.')) return;
-  stopTimers(); CUR = null; showMenu(); sendProgress();
+  stopTimers(); CUR = null; CURFRAC = 0; showMenu(); sendProgress();
   toast('Прогрес рівня збережено. Продовжиш з того ж місця, коли повернешся.', 'info');
 }
 function levelTop(title, part) {
@@ -1265,7 +1294,9 @@ function playPages(done, l) {
       info.textContent = s[0] + ': ' + s[1] + ' з ' + s[2] + '. ' + (complete() ? (last ? 'Перевір усе й завершуй рівень.' : 'Можна переходити далі.') : 'Відповіді можна змінювати, поки не завершиш рівень.');
       next.disabled = !complete();
     }
-    function save() { setProg(l.id, P); refresh(); }
+    function levelFrac() { var a = 0, b = 0; pages.forEach(function (p2, i) { var s2 = PAGE[p2.type].status(p2, P.st[i]); a += Math.min(s2[1], s2[2]); b += s2[2]; }); return b ? a / b : 0; }
+    function save() { setProg(l.id, P); refresh(); CURFRAC = levelFrac(); tickProgress(); }
+    CURFRAC = levelFrac();
     next = h('button', { class: 'btn', style: 'flex:2', text: last ? 'Завершити рівень' : 'Далі ›', onclick: function () {
       if (!complete()) return;
       if (!last) { P.k++; setProg(l.id, P); show(); return; }
@@ -1424,7 +1455,7 @@ function playBlitz(done, id, title) {
   function end() { stopTimers(); saveReview(id, P.rows); done(score); }
   function next() { if (!CUR || CUR.id !== id) return; i++; P.i = i; P.score = score; P.open = false; setProg(id, P); if (i >= qs.length) end(); else show(); }
   function show() {
-    stopTimers(); locked = false; left = BLITZ_SEC; P.open = true; setProg(id, P);
+    stopTimers(); locked = false; left = BLITZ_SEC; P.open = true; setProg(id, P); CURFRAC = i / qs.length; tickProgress();
     var q = qs[i], bar = h('i'), fb = h('div', { class: 'fb', 'aria-live': 'polite' });
     function answer(val, timeout) {
       if (locked) return; locked = true; stopTimers(); var ok = !timeout && val === q[1]; if (ok) score++;

@@ -62,6 +62,15 @@ function progSheet_() {
   if (hr.getValues()[0].join('|') !== PHEAD.join('|')) hr.setValues([PHEAD]).setFontWeight('bold');
   return sh;
 }
+/* Копія аркуша прогресу в кеші: панель і телевізор читають її без відкриття таблиці */
+function progRows_() {
+  var c = CacheService.getScriptCache(), raw = c.get('prog');
+  if (raw) return JSON.parse(raw);
+  var ps = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(PROG), rows = ps ? rows_(ps).map(function (r) { return r.map(function (v) { return v instanceof Date ? v.getTime() : v; }); }) : [];
+  try { c.put('prog', JSON.stringify(rows), 600); } catch (x) {}
+  return rows;
+}
+function progDirty_() { CacheService.getScriptCache().remove('prog'); }
 function progFind_(sh, cls, last, first) {
   var data = rows_(sh);
   for (var i = 0; i < data.length; i++) if (data[i][1] === cls && same_(data[i][2], last) && same_(data[i][3], first)) return i + 2;
@@ -69,11 +78,24 @@ function progFind_(sh, cls, last, first) {
 }
 function num_(v, max) { v = Math.round(Number(v) || 0); return Math.max(0, Math.min(max, v)); }
 
+/* Швидкі проміжні оновлення прогресу: пишемо лише в кеш скрипта, без таблиці й без черги */
+function tickKey_(cls, last, first) { return 't|' + cls + '|' + strip_(last).toLowerCase() + '|' + strip_(first).toLowerCase(); }
+function tick_(d) {
+  if (!CLASS_RE.test(String(d.cls))) return out_({ ok: false, error: 'bad class' });
+  var f = clean_(d.first), l = clean_(d.last);
+  if (!f || !l) return out_({ ok: false, error: 'name required' });
+  CacheService.getScriptCache().put(tickKey_(d.cls, l, f), JSON.stringify({ pct: num_(d.pct, 100), now: clean_(d.now, 60), out: !!d.out, ts: Number(d.ts) || 0, srv: Date.now() }), 21600);
+  return out_({ ok: true });
+}
+
 function doPost(e) {
+  var d0;
+  try { d0 = JSON.parse(e.postData.contents); } catch (x) { return out_({ ok: false, error: 'bad json' }); }
+  if (d0.action === 'tick') return tick_(d0);
   var lock = LockService.getScriptLock();
   try {
     lock.waitLock(20000);
-    var d = JSON.parse(e.postData.contents), act = d.action || 'submit';
+    var d = d0, act = d.action || 'submit';
 
     if (act === 'progress') {
       if (!CLASS_RE.test(String(d.cls))) return out_({ ok: false, error: 'bad class' });
@@ -92,6 +114,7 @@ function doPost(e) {
       var prow = [new Date(), d.cls, pl, pf, num_(d.pct, 100), num_(d.done, 100) + ' з ' + num_(d.total, 100), clean_(d.now, 60),
         num_(d.leaves, 100000), num_(d.away, 1000000), d.fin ? 'так' : '', d.out ? 'так' : '', av_(d.av), ts, Date.now()];
       if (at) ps.getRange(at, 1, 1, PHEAD.length).setValues([prow]); else ps.appendRow(prow);
+      progDirty_();
       return out_({ ok: true });
     }
 
@@ -131,7 +154,7 @@ function doPost(e) {
       var ss = SpreadsheetApp.getActiveSpreadsheet();
       ss.getSheets().forEach(function (x) { if (CLASS_RE.test(x.getName()) || x.getName() === PROG) { var lr = x.getLastRow(); if (lr > 1) x.deleteRows(2, lr - 1); } });
       var round = (Number(props_().getProperty('round')) || 1) + 1;
-      props_().setProperty('round', String(round)); props_().setProperty('review', '0');
+      props_().setProperty('round', String(round)); props_().setProperty('review', '0'); progDirty_();
       return out_({ ok: true, round: round });
     }
     if (!CLASS_RE.test(String(d.cls))) return out_({ ok: false, error: 'bad class' });
@@ -140,6 +163,7 @@ function doPost(e) {
       for (var j = data2.length - 1; j >= 0; j--) if (same_(data2[j][2], d.last) && same_(data2[j][3], d.first)) sh2.deleteRow(j + 2);
       var ps2 = progSheet_(), at2 = progFind_(ps2, d.cls, d.last, d.first);
       if (at2) ps2.deleteRow(at2);
+      progDirty_();
       return out_({ ok: true });
     }
     if (act === 'clear') {
@@ -147,6 +171,7 @@ function doPost(e) {
       if (n > 1) sh3.deleteRows(2, n - 1);
       var ps3 = progSheet_(), pdata = rows_(ps3);
       for (var q = pdata.length - 1; q >= 0; q--) if (pdata[q][1] === d.cls) ps3.deleteRow(q + 2);
+      progDirty_();
       return out_({ ok: true });
     }
     return out_({ ok: false, error: 'unknown action' });
@@ -162,10 +187,18 @@ function doGet(e) {
   if (p.action === 'live' || p.action === 'tv') {
     // live — для вчителя (з ключем, повні прізвища й виходи); tv — для екрана в класі (лише ім'я та прогрес)
     if (p.action === 'live' && p.key !== ADMIN_KEY) return out_({ error: 'wrong key' });
-    var ps = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(PROG);
-    var live = (ps ? rows_(ps) : []).filter(function (r) { return r[1] === cls; }).map(function (r) {
-      return { t: Number(r[13]) || new Date(r[0]).getTime(), last: strip_(r[2]), first: strip_(r[3]), pct: Number(r[4]) || 0, done: String(r[5]), now: strip_(r[6]), leaves: Number(r[7]) || 0, away: Number(r[8]) || 0, fin: r[9] === 'так', out: r[10] === 'так', av: av_(r[11]) };
+    var live = progRows_().filter(function (r) { return r[1] === cls; }).map(function (r) {
+      return { t: Number(r[13]) || new Date(r[0]).getTime(), ts: Number(r[12]) || 0, last: strip_(r[2]), first: strip_(r[3]), pct: Number(r[4]) || 0, done: String(r[5]), now: strip_(r[6]), leaves: Number(r[7]) || 0, away: Number(r[8]) || 0, fin: r[9] === 'так', out: r[10] === 'так', av: av_(r[11]) };
     });
+    // Накладаємо свіжіші проміжні оновлення з кешу
+    if (live.length) {
+      var ticks = CacheService.getScriptCache().getAll(live.map(function (r) { return tickKey_(cls, r.last, r.first); }));
+      live.forEach(function (r) {
+        var raw = ticks[tickKey_(cls, r.last, r.first)]; if (!raw) return;
+        var x = JSON.parse(raw); if (r.fin || x.ts <= r.ts) return;
+        r.pct = Math.max(r.pct, x.pct); r.now = x.now || r.now; r.out = x.out; r.t = Math.max(r.t, x.srv);
+      });
+    }
     live.sort(function (a, b) { return a.last.localeCompare(b.last, 'uk') || a.first.localeCompare(b.first, 'uk'); });
     if (p.action === 'tv') live = live.map(function (r) { return { n: r.first + ' ' + r.last, av: r.av, pct: r.pct, done: r.done, now: r.now, fin: r.fin }; });
     return out_({ rows: live, now: Date.now() });
