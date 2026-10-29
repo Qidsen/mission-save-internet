@@ -346,6 +346,10 @@
   .tv-cls { font: inherit; font-weight: 800; background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 6px 12px; cursor:pointer; }
   .tv-cls.on { background: var(--accent); color: var(--accent-ink); }
   @media (max-width: 700px) { .tv-head { grid-template-columns: 1fr 1fr; } .tv-title { grid-column: 1 / -1; } }
+  .teacherbar { display:flex; gap: 12px; align-items:center; justify-content:space-between; flex-wrap: wrap; background: rgba(255,216,74,.14); border: 2px solid var(--yellow); border-radius: 18px; padding: 12px 14px; margin-bottom: 12px; }
+  .teacherbar b { font-family: var(--display); color: var(--yellow); }
+  .teacherbar div div { color: var(--ink); font-size: .92rem; margin-top: 2px; }
+  .teacherbar > div { flex: 1 1 220px; }
   @media (max-width: 420px) { body { font-size: 16.5px; } .slide { flex-basis: 90%; } .grade { font-size: 3.8rem; } .tabs .btn { font-size: .85rem; } .lv b { font-size: .92rem; } .lv .stars { font-size: 1rem; } }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
@@ -394,7 +398,11 @@ function h(tag, attrs, children) {
   (children || []).forEach(function (c) { if (c != null) e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
   return e;
 }
-function store(key, val) { try { if (val === undefined) return localStorage.getItem(key); localStorage.setItem(key, val); } catch (e) { return null; } }
+/* Режим вчителя: гра без запису результатів, дані зберігаються окремо від учнівських */
+function isTeacher() { return sstore('imi_teacher') === '1'; }
+function lkey(key) { return isTeacher() ? key.replace(/^imi_/, 'imt_') : key; }
+function unstore(key) { try { localStorage.removeItem(lkey(key)); } catch (e) {} }
+function store(key, val) { key = lkey(key); try { if (val === undefined) return localStorage.getItem(key); localStorage.setItem(key, val); } catch (e) { return null; } }
 function sstore(key, val) { try { if (val === undefined) return sessionStorage.getItem(key); sessionStorage.setItem(key, val); } catch (e) { return null; } }
 /* Спливаючі повідомлення */
 function toast(text, kind) {
@@ -516,7 +524,7 @@ function confetti() {
 
 /* ===== Стан ===== */
 var DATA_VERSION = '4';
-if (store('imi_ver') !== DATA_VERSION) { try { ['imi_state', 'imi_prog', 'imi_review', 'imi_watch'].forEach(function (k) { localStorage.removeItem(k); }); } catch (e) {} store('imi_ver', DATA_VERSION); }
+if (store('imi_ver') !== DATA_VERSION) { try { ['imi_state', 'imi_prog', 'imi_review', 'imi_watch'].forEach(unstore); } catch (e) {} store('imi_ver', DATA_VERSION); }
 var state = { first: store('imi_first') || '', last: store('imi_last') || '', cls: store('imi_cls') || '', av: store('imi_av') || '', stars: {}, scores: {} };
 try { var saved = JSON.parse(store('imi_state') || '{}'); if (saved && saved.stars) { state.stars = saved.stars; state.scores = saved.scores || {}; } } catch (e) {}
 function getProg(id) { try { var o = JSON.parse(store('imi_prog') || '{}'); return o[id] || null; } catch (e) { return null; } }
@@ -525,8 +533,11 @@ function saveReview(id, rows) { try { var o = JSON.parse(store('imi_review') || 
 function getReview() { try { return JSON.parse(store('imi_review') || '{}'); } catch (e) { return {}; } }
 function saveState() { store('imi_state', JSON.stringify({ stars: state.stars, scores: state.scores })); store('imi_first', state.first); store('imi_last', state.last); store('imi_cls', state.cls); store('imi_av', state.av || ''); }
 function displayName() { return (state.first.trim() + ' ' + state.last.trim()).trim(); }
-function profileOk() { return state.first.trim() && state.last.trim() && CLASSES.indexOf(state.cls) >= 0; }
+function profileOk() { return isTeacher() || (state.first.trim() && state.last.trim() && CLASSES.indexOf(state.cls) >= 0); }
 var app = $('#app');
+if (isTeacher()) { state.first = 'Вчитель'; state.last = '(перегляд)'; if (CLASSES.indexOf(state.cls) < 0) state.cls = CLASSES[0]; if (!state.av) state.av = 'robot.4'; }
+function enterTeacher() { sstore('imi_teacher', '1'); sstore('imi_started', '1'); location.hash = ''; location.reload(); }
+function exitTeacher() { try { sessionStorage.removeItem('imi_teacher'); sessionStorage.removeItem('imi_started'); } catch (e) {} location.hash = ''; location.reload(); }
 function render(nodes) { app.innerHTML = ''; nodes.forEach(function (n) { if (n) app.appendChild(n); }); window.scrollTo(0, 0); }
 
 /* ===== Оцінка ===== */
@@ -654,9 +665,9 @@ function showMenu(msg) {
   var starTotal = 0; LEVELS.forEach(function (l) { starTotal += state.stars[l.id] || 0; });
   var nextId = null; LEVELS.some(function (l) { if (state.scores[l.id] == null) { nextId = l.id; return true; } return false; });
   var cards = LEVELS.map(function (l, i) {
-    var isDone = state.scores[l.id] != null;
+    var isDone = state.scores[l.id] != null, again = isDone && isTeacher();
     var b = h('div', { class: 'badge' }, [ico(l.icon), h('span', { class: 'lvnum', 'aria-hidden': 'true', text: isDone ? '✓' : String(i + 1) })]); b.style.setProperty('--bgc', l.color);
-    return h('button', { class: 'lv' + (isDone ? ' done' : '') + (l.id === nextId ? ' next' : ''), disabled: isDone ? 'disabled' : null, 'aria-label': 'Рівень ' + (i + 1) + '. ' + l.title + (isDone ? ', пройдено' : ''), onclick: function () { startLevel(l); } }, [b, h('span', {}, [h('b', { text: l.title }), h('small', {}, [h('span', { class: 'par', text: l.par }), isDone ? 'Рівень пройдено' : (getProg(l.id) ? 'Продовжити з місця зупинки' : l.sub)])]), h('span', { class: 'meta' }, [starsHtml(state.stars[l.id] || 0)])]);
+    return h('button', { class: 'lv' + (isDone ? ' done' : '') + (l.id === nextId ? ' next' : ''), disabled: isDone && !again ? 'disabled' : null, 'aria-label': 'Рівень ' + (i + 1) + '. ' + l.title + (isDone ? ', пройдено' : ''), onclick: function () { startLevel(l); } }, [b, h('span', {}, [h('b', { text: l.title }), h('small', {}, [h('span', { class: 'par', text: l.par }), isDone ? (again ? 'Пройдено, натисни, щоб пройти ще раз' : 'Рівень пройдено') : (getProg(l.id) ? 'Продовжити з місця зупинки' : l.sub)])]), h('span', { class: 'meta' }, [starsHtml(state.stars[l.id] || 0)])]);
   });
   var first = h('input', { type: 'text', placeholder: 'Ім\'я', maxlength: '30', value: state.first, autocomplete: 'given-name', 'aria-label': 'Ім\'я', oninput: function (e) { state.first = e.target.value; saveState(); } });
   var last = h('input', { type: 'text', placeholder: 'Прізвище', maxlength: '30', value: state.last, autocomplete: 'family-name', 'aria-label': 'Прізвище', oninput: function (e) { state.last = e.target.value; saveState(); } });
@@ -667,9 +678,10 @@ function showMenu(msg) {
   render([
     h('h1', { text: 'Місія: Врятувати Інтернет' }),
     h('div', { html: HERO }),
-    mascot(hi + 'Рівні можна проходити в будь-якому порядку. Завершений рівень змінити вже не можна, тож перевіряй відповіді!', 'happy'),
+    mascot(isTeacher() ? 'Привіт! Це режим перегляду для вчителя: проходь будь-які рівні скільки завгодно, нічого не запишеться.' : hi + 'Рівні можна проходити в будь-якому порядку. Завершений рівень змінити вже не можна, тож перевіряй відповіді!', 'happy'),
     msg ? h('div', { class: 'warn', text: msg }) : null,
-    h('div', { class: 'card row', style: 'justify-content:space-between' }, [h('span', { class: 'row', style: 'flex-wrap:nowrap;gap:12px' }, [avatar(state.av), h('span', {}, [h('b', { text: displayName() }), h('span', { class: 'muted', text: ', ' + state.cls })])]), (!t.all ? h('button', { class: 'btn alt', style: 'min-height:40px;padding:6px 14px', text: 'Змінити', onclick: function () { showWelcome(null, true); } }) : null)]),
+    isTeacher() ? h('div', { class: 'teacherbar' }, [h('div', {}, [h('b', { text: 'Режим вчителя' }), h('div', { text: 'Прогрес і результати не записуються, виходи зі сторінки не рахуються. Пройдені рівні можна відкривати знову.' })]), h('button', { class: 'btn alt', text: 'Вийти з режиму', onclick: exitTeacher })]) : null,
+    isTeacher() ? null : h('div', { class: 'card row', style: 'justify-content:space-between' }, [h('span', { class: 'row', style: 'flex-wrap:nowrap;gap:12px' }, [avatar(state.av), h('span', {}, [h('b', { text: displayName() }), h('span', { class: 'muted', text: ', ' + state.cls })])]), (!t.all ? h('button', { class: 'btn alt', style: 'min-height:40px;padding:6px 14px', text: 'Змінити', onclick: function () { showWelcome(null, true); } }) : null)]),
     SHOW_MATERIALS ? h('h2', { text: 'Секретні матеріали' }) : null,
     SHOW_MATERIALS ? carousel() : null,
     h('h2', { text: 'Місія' }),
@@ -688,7 +700,10 @@ function showMenu(msg) {
 
 function startLevel(l) {
   if (!profileOk()) { showWelcome('Спочатку заповни досьє агента: ім\'я, прізвище та клас.'); return; }
-  if (state.scores[l.id] != null) { showMenu('Цей рівень уже пройдено, повторно проходити його не можна.'); return; }
+  if (state.scores[l.id] != null) {
+    if (!isTeacher()) { showMenu('Цей рівень уже пройдено, повторно проходити його не можна.'); return; }
+    delete state.scores[l.id]; delete state.stars[l.id]; setProg(l.id, null); saveState();
+  }
   stopTimers(); stopConfetti(); CUR = l;
   if (getProg(l.id)) toast('Продовжуємо рівень з місця зупинки. Твої відповіді збережено.', 'info');
   sendProgress();
@@ -767,6 +782,7 @@ function showSummary() {
     mascot(grade >= 10 ? 'Неймовірно! Інтернет врятовано, а ти — герой!' : grade >= 7 ? 'Круто! Місію виконано, ти молодець!' : 'Місію завершено. Повтори матеріал підручника, і наступного разу вийде краще!', grade >= 7 ? 'wow' : 'happy'),
     h('div', { class: 'card' }, rows), status, h('div', { class: 'grid' }, [h('button', { class: 'btn big', text: 'До меню', onclick: function () { showMenu(); } }), h('button', { class: 'btn alt big', text: 'Таблиця лідерів', onclick: function () { showBoard(state.cls); } })]), h('div', { style: 'height:12px' }), boardBox
   ]);
+  if (isTeacher()) { status.textContent = 'Режим вчителя: результат нікуди не надсилається.'; return; }
   if (!apiEnabled()) { status.textContent = 'Таблиця вчителя ще не підключена, результат не надіслано. Зроби знімок цього екрана для вчителя.'; return; }
   var details = {}, starSum = 0; LEVELS.forEach(function (l) { details[l.id] = { t: l.title, s: state.scores[l.id], m: l.max }; starSum += state.stars[l.id] || 0; });
   var retry = h('button', { class: 'btn big', style: 'display:none;margin-bottom:12px', text: 'Надіслати ще раз', onclick: function () { send(); } });
@@ -806,13 +822,13 @@ function showBoard(cls) {
 var W = (function () { try { return JSON.parse(store('imi_watch') || '{}') || {}; } catch (e) { return {}; } })();
 W.leaves = W.leaves || 0; W.away = W.away || 0;
 function saveW() { store('imi_watch', JSON.stringify(W)); }
-function watching() { return profileOk() && !!sstore('imi_started') && !totals().all; }
+function watching() { return !isTeacher() && profileOk() && !!sstore('imi_started') && !totals().all; }
 var confirmAt = 0;
 /* Діалог підтвердження: браузер може вважати його виходом зі сторінки, тому позначаємо час */
 function ask(msg) { confirmAt = Date.now(); try { return window.confirm(msg); } finally { confirmAt = Date.now(); } }
 function fmtDur(ms) { var s = Math.round(ms / 1000), m = Math.floor(s / 60); return m ? m + ' хв ' + (s % 60) + ' с' : s + ' с'; }
 function sendProgress(prev) {
-  if (!apiEnabled() || !profileOk() || !sstore('imi_started')) return;
+  if (isTeacher() || !apiEnabled() || !profileOk() || !sstore('imi_started')) return;
   var t = totals(), inLevel = CUR && state.scores[CUR.id] == null;
   apiPost({ action: 'progress', first: state.first.trim(), last: state.last.trim(), cls: state.cls, done: t.done, total: LEVELS.length,
     pct: Math.round(t.done / LEVELS.length * 100), now: t.all ? 'Завершив контрольну' : inLevel ? 'Рівень ' + (LEVELS.indexOf(CUR) + 1) + ': ' + CUR.title : 'Меню',
@@ -933,11 +949,18 @@ function showAdmin(cls, tab) {
     var openBtn = h('button', { class: 'btn ok', text: 'Відкрити розбір', onclick: function () { setReview(true, openBtn); } });
     var closeBtn = h('button', { class: 'btn alt', text: 'Закрити розбір', onclick: function () { setReview(false, closeBtn); } });
     box.appendChild(h('div', { class: 'card' }, [h('b', { text: 'Розбір помилок для учнів' }), revstat, h('div', { class: 'row' }, [openBtn, closeBtn])]));
+    var tBtn = h('button', { class: 'btn ok', text: 'Пройти гру як вчитель', onclick: function () {
+      if (!apiEnabled()) { enterTeacher(); return; }
+      tBtn.disabled = true;
+      apiGet({ action: 'live', 'class': CLASSES[0], key: k() }).then(function (r) { tBtn.disabled = false; if (r && !r.error) enterTeacher(); else toast(adminErr(r && r.error), 'bad'); })
+        .catch(function () { tBtn.disabled = false; toast('Немає зв\'язку з таблицею.', 'bad'); });
+    } });
+    box.appendChild(h('div', { class: 'card' }, [h('b', { text: 'Режим вчителя' }), h('p', { class: 'muted', text: 'Пройди гру як учень, але без запису: тебе не буде в прогресі, на телевізорі й у таблиці лідерів. Пройдені рівні можна відкривати знову.' }), tBtn]));
     box.appendChild(h('div', { class: 'card' }, [h('b', { text: 'На цьому пристрої' }), h('p', { class: 'muted', text: 'Щоб заново пройти гру під час тестування, очисти локальні результати.' }),
       h('button', { class: 'btn alt', text: 'Очистити локальні результати', onclick: function () {
         if (!ask('Очистити результати й прогрес гри на цьому пристрої?')) return;
         state.stars = {}; state.scores = {}; saveState();
-        try { ['imi_prog', 'imi_review', 'imi_watch'].forEach(function (x) { localStorage.removeItem(x); }); sessionStorage.removeItem('imi_started'); } catch (e) {}
+        try { ['imi_prog', 'imi_review', 'imi_watch'].forEach(unstore); if (!isTeacher()) sessionStorage.removeItem('imi_started'); } catch (e) {}
         W = { leaves: 0, away: 0 };
         toast('Результати й прогрес на цьому пристрої очищено.', 'ok');
       } })]));
