@@ -114,6 +114,24 @@
   .paper.lead-fig { transform: rotate(-.6deg); margin-top: 22px; }
   .paper.lead-fig::before { content:""; position:absolute; top:-12px; left: 50%; width: 110px; height: 24px; transform: translateX(-50%) rotate(-3deg);
     background: rgba(255,216,74,.78); box-shadow: 0 1px 2px rgba(0,0,0,.15); }
+  .lead-fig img { cursor: zoom-in; }
+  .fig-hint { display:inline-block; margin-left: 4px; font-weight: 800; color: #6b4fd8; }
+  /* Мініатюра малюнка, що лишається вгорі, коли учень гортає до питань */
+  .figmini { position: fixed; top: max(8px, env(safe-area-inset-top)); left: 50%; z-index: 40; width: min(728px, calc(100% - 24px)); transform: translate(-50%, -140%);
+    display:flex; gap: 10px; align-items:center; padding: 6px 8px; background: #fff; border-radius: 12px; box-shadow: 0 10px 28px rgba(0,0,0,.5); transition: transform .25s; }
+  .figmini.on { transform: translate(-50%, 0); }
+  .figmini button.fm-img { flex: 1; min-width: 0; padding: 0; border: 0; background: none; cursor: zoom-in; }
+  .figmini img { display:block; max-width: 100%; max-height: 24vh; margin: 0 auto; border-radius: 6px; }
+  .figmini .fm-x { flex: none; width: 36px; height: 36px; border: 0; border-radius: 10px; background: #ece9ff; color: #3b3f66; font-size: 1.2rem; font-weight: 800; cursor: pointer; }
+  /* Перегляд малюнка на весь екран */
+  .lbox { position: fixed; inset: 0; z-index: 100; background: rgba(6,5,24,.97); display:flex; flex-direction: column; }
+  .lbox-bar { display:flex; gap: 10px; align-items:center; justify-content: space-between; padding: max(10px, env(safe-area-inset-top)) 14px 10px; color: #fff; font-size: .9rem; }
+  .lbox-bar span { opacity: .8; }
+  .lbox-bar .btn { flex: none; white-space: nowrap; }
+  .lbox-scroll { flex: 1; overflow: auto; display:flex; padding: 0 10px max(14px, env(safe-area-inset-bottom)); }
+  .lbox-scroll img { margin: auto; max-width: 100%; max-height: 100%; background: #fff; border-radius: 8px; padding: 6px; cursor: zoom-in; }
+  .lbox.big .lbox-scroll img { max-width: none; max-height: none; width: 220%; cursor: zoom-out; }
+  @media (min-width: 900px) { .lbox.big .lbox-scroll img { width: 160%; } }
   .zoomwrap { padding: 6px; margin: 0 0 12px; box-shadow: 0 8px 20px rgba(0,0,0,.3); }
   .zoom { aspect-ratio: 16 / 9; background-repeat: no-repeat; border-radius: 7px; background-color: #fff; }
 
@@ -634,7 +652,37 @@ var app = $('#app');
 if (isTeacher()) { state.first = 'Вчитель'; state.last = '(перегляд)'; if (CLASSES.indexOf(state.cls) < 0) state.cls = CLASSES[0]; if (!state.av) state.av = 'robot.4'; }
 function enterTeacher() { sstore('imi_teacher', '1'); sstore('imi_started', '1'); location.hash = ''; location.reload(); }
 function exitTeacher() { try { sessionStorage.removeItem('imi_teacher'); sessionStorage.removeItem('imi_started'); } catch (e) {} location.hash = ''; location.reload(); }
-function render(nodes) { app.innerHTML = ''; nodes.forEach(function (n) { if (n) app.appendChild(n); }); window.scrollTo(0, 0); }
+/* Малюнок з підручника над питаннями: натискання відкриває його на весь екран,
+   а коли учень гортає до питань, угорі лишається мініатюра */
+function openFig(fig) {
+  closeFig();
+  var img = h('img', { src: fig.img, alt: fig.alt || '' });
+  var lb = h('div', { class: 'lbox', role: 'dialog', 'aria-modal': 'true', 'aria-label': fig.alt || 'Малюнок' }, [
+    h('div', { class: 'lbox-bar' }, [h('span', { text: 'Натисни на малюнок, щоб збільшити чи зменшити' }), h('button', { class: 'btn alt', style: 'min-height:40px;padding:6px 14px', text: 'Закрити ✕', onclick: closeFig })]),
+    h('div', { class: 'lbox-scroll', onclick: function (e) { if (e.target === this) closeFig(); } }, [img])]);
+  img.addEventListener('click', function () { lb.classList.toggle('big'); });
+  document.body.appendChild(lb); document.body.style.overflow = 'hidden';
+}
+function closeFig() { var lb = document.querySelector('.lbox'); if (lb) lb.remove(); document.body.style.overflow = ''; }
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeFig(); });
+function figBlock(box, fig) {
+  var big = h('figure', { class: 'paper lead-fig' }, [h('img', { src: fig.img, alt: fig.alt || '', loading: 'lazy', onclick: function () { openFig(fig); } }),
+    h('figcaption', {}, [fig.caption || '', h('span', { class: 'fig-hint', text: ' Натисни, щоб збільшити.' })])]);
+  var hidden = false, mini = h('div', { class: 'figmini', 'aria-hidden': 'true' }, [
+    h('button', { class: 'fm-img', 'aria-label': 'Збільшити малюнок', onclick: function () { openFig(fig); } }, [h('img', { src: fig.img, alt: '' })]),
+    h('button', { class: 'fm-x', 'aria-label': 'Сховати мініатюру', text: '✕', onclick: function () { hidden = true; mini.classList.remove('on'); } })]);
+  box.appendChild(big); box.appendChild(mini);
+  if (!('IntersectionObserver' in window)) return;
+  var io = new IntersectionObserver(function (en) {
+    if (!mini.isConnected) { io.disconnect(); return; }
+    var gone = !en[0].isIntersecting && en[0].boundingClientRect.top < 0;
+    if (!gone) hidden = false;
+    mini.classList.toggle('on', gone && !hidden); mini.setAttribute('aria-hidden', gone && !hidden ? 'false' : 'true');
+  });
+  io.observe(big);
+}
+
+function render(nodes) { closeFig(); app.innerHTML = ''; nodes.forEach(function (n) { if (n) app.appendChild(n); }); window.scrollTo(0, 0); }
 
 /* ===== Оцінка ===== */
 function totals() { var sum = 0, max = 0, done = 0; LEVELS.forEach(function (l) { max += l.max; if (state.scores[l.id] != null) { sum += state.scores[l.id]; done++; } }); return { sum: sum, max: max, done: done, all: done === LEVELS.length }; }
@@ -879,7 +927,7 @@ function showMenu(msg) {
     h('div', { class: 'grid map' }, cards),
     h('div', { class: 'row', style: 'margin-top:12px' }, [
       h('button', { class: 'btn', text: t.all ? 'Моя оцінка' : 'Підсумок', onclick: showSummary }),
-      t.all ? h('button', { class: 'btn alt', text: 'Розбір помилок', onclick: showReview }) : null,
+      t.all || isTeacher() ? h('button', { class: 'btn alt', text: 'Розбір помилок', onclick: showReview }) : null,
       h('button', { class: 'btn alt', text: 'Таблиця лідерів', onclick: function () { showBoard(state.cls || CLASSES[0]); } })]),
     SHOW_MATERIALS ? h('h2', { text: 'Відео' }) : null,
     SHOW_MATERIALS ? h('div', { class: 'vids' }, VIDEOS.map(function (v) { return h('a', { class: 'vid', href: v.url, target: '_blank', rel: 'noopener noreferrer' }, [h('span', { class: 'play' }), h('span', {}, [h('b', { text: v.title }), h('small', { text: v.note })])]); })) : null,
@@ -932,7 +980,7 @@ function showReview() {
       var rows = rv[l.id] || [], bad = rows.filter(function (r) { return !r.ok; });
       var sc = state.scores[l.id];
       var card = h('div', { class: 'card' }, [h('h3', { text: l.title + (sc != null ? ': ' + sc + ' з ' + l.max + ' балів' : '') })]);
-      if (!rows.length) card.appendChild(h('p', { class: 'muted', text: 'Немає даних.' }));
+      if (!rows.length) card.appendChild(h('p', { class: 'muted', text: sc == null ? 'Рівень ще не пройдено.' : 'Немає даних.' }));
       else if (!bad.length) card.appendChild(h('p', { class: 'fb ok', text: 'Без помилок!' }));
       bad.forEach(function (r) {
         any = true;
@@ -949,7 +997,8 @@ function showReview() {
       box.appendChild(card);
     });
   }
-  if (!apiEnabled()) { draw(); return; }
+  // Учитель у режимі перегляду бачить розбір завжди, учні лише коли його відкрито на панелі
+  if (!apiEnabled() || isTeacher()) { draw(); return; }
   box.appendChild(h('div', { class: 'muted', text: 'Перевіряю, чи вчитель відкрив розбір…' }));
   apiGet({ action: 'status' }).then(function (r) {
     if (r && r.reviews && TEST && r.reviews[TEST.id]) draw();
@@ -1431,7 +1480,7 @@ var PAGE = {
     render: function (pg, st, save) {
       var box = h('div'), lastHead = null, items = choiceItems(pg, st);
       /* Малюнок з підручника над питаннями (fig: { img, alt, caption }) */
-      if (pg.fig) box.appendChild(h('figure', { class: 'paper lead-fig' }, [h('img', { src: pg.fig.img, alt: pg.fig.alt || '', loading: 'lazy' }), h('figcaption', { text: pg.fig.caption || '' })]));
+      if (pg.fig) figBlock(box, pg.fig);
       st.qord.forEach(function (k, pos) {
         var it = items[k];
         if (it.head && it.head !== lastHead) { lastHead = it.head; box.appendChild(h('h3', { class: 'qhead', text: it.head })); }
