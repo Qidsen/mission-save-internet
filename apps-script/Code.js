@@ -16,8 +16,25 @@ var TEST_RE = /^\d{1,2}-[0-9a-z]{1,8}$/;
 var SEP = ' · ';
 /* Живий прогрес учнів під час контрольної (один рядок на учня й контрольну) */
 var PROG = 'Прогрес';
-var PHEAD = ['Оновлено', 'Клас', 'Прізвище', "Ім'я", 'Прогрес %', 'Пройдено рівнів', 'Зараз', 'Виходів зі сторінки', 'Поза сторінкою, с', 'Завершено', 'Зараз поза сторінкою', 'Аватар', 'Мітка', 'Сервер, мс', 'Контрольна'];
-var C_TEST = 14;
+var PHEAD = ['Оновлено', 'Клас', 'Прізвище', "Ім'я", 'Прогрес %', 'Пройдено рівнів', 'Зараз', 'Виходів зі сторінки', 'Поза сторінкою, с', 'Завершено', 'Зараз поза сторінкою', 'Аватар', 'Мітка', 'Сервер, мс', 'Контрольна', 'Пристрій'];
+var C_TEST = 14, C_DEV = 15;
+/* Випадковий ідентифікатор пристрою учня: старий запис можна прибрати лише з того самого пристрою */
+var DEV_RE = /^[a-z0-9]{8,32}$/;
+function dev_(v) { v = String(v || ''); return DEV_RE.test(v) ? v : ''; }
+/* Обмеження спроб: забагато неправильних кодів чи паролів за 2 хвилини — тимчасово відмовляємо */
+function blocked_(kind, limit) { return Number(CacheService.getScriptCache().get('fail:' + kind) || 0) >= limit; }
+function failed_(kind) { var c = CacheService.getScriptCache(), k = 'fail:' + kind; c.put(k, String(Number(c.get(k) || 0) + 1), 120); }
+function keyOk_(key) { if (blocked_('key', 15)) return false; if (key === ADMIN_KEY) return true; failed_('key'); return false; }
+/* Контрольні, які вже вмикались: інші коди сервер не приймає */
+function known_() {
+  var ap = props_().getProperties(), k = {};
+  try { (JSON.parse(ap.known || '[]') || []).forEach(function (t) { k[t] = 1; }); } catch (x) {}
+  var a = active_(); Object.keys(a).forEach(function (g) { if (okTest_(a[g])) k[a[g]] = 1; });
+  Object.keys(ap).forEach(function (p) { if (p.indexOf('round:') === 0) k[p.slice(6)] = 1; });
+  return k;
+}
+function round_(test) { return Number(props_().getProperty('round:' + test)) || 1; }
+function staleRound_(d) { return d.round != null && d.round !== '' && Number(d.round) !== round_(String(d.test)); }
 var AV_RE = /^[a-z]{2,12}\.[0-9]$/;
 function av_(v) { v = String(v || ''); return AV_RE.test(v) ? v : ''; }
 
@@ -89,7 +106,7 @@ function progRows_() {
   var c = CacheService.getScriptCache(), raw = c.get('prog');
   if (raw) return JSON.parse(raw);
   var ps = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(PROG), rows = ps ? rows_(ps).map(function (r) { return r.map(function (v) { return v instanceof Date ? v.getTime() : v; }); }) : [];
-  try { c.put('prog', JSON.stringify(rows), 600); } catch (x) {}
+  try { c.put('prog', JSON.stringify(rows), 20); } catch (x) {}
   return rows;
 }
 function progDirty_() { CacheService.getScriptCache().remove('prog'); }
@@ -127,7 +144,7 @@ function ensureSchema_() {
 /* Швидкі проміжні оновлення прогресу: пишемо лише в кеш скрипта, без таблиці й без черги */
 function tickKey_(cls, test, last, first) { return 't|' + cls + '|' + test + '|' + strip_(last).toLowerCase() + '|' + strip_(first).toLowerCase(); }
 function tick_(d) {
-  if (!CLASS_RE.test(String(d.cls)) || !okTest_(d.test)) return out_({ ok: false, error: 'bad class' });
+  if (!CLASS_RE.test(String(d.cls)) || !okTest_(d.test) || !known_()[d.test]) return out_({ ok: false, error: 'bad class' });
   if (!codeOk_(d.cls, d.code)) return out_({ ok: false, error: 'bad code' });
   var f = clean_(d.first), l = clean_(d.last);
   if (!f || !l) return out_({ ok: false, error: 'name required' });
@@ -146,9 +163,10 @@ function doPost(e) {
     var d = d0, act = d.action || 'submit';
 
     if (act === 'progress') {
-      if (!CLASS_RE.test(String(d.cls)) || !okTest_(d.test)) return out_({ ok: false, error: 'bad class' });
+      if (!CLASS_RE.test(String(d.cls)) || !okTest_(d.test) || !known_()[d.test]) return out_({ ok: false, error: 'bad class' });
       if (!codeOk_(d.cls, d.code)) return out_({ ok: false, error: 'bad code' });
-      var pf = clean_(d.first), pl = clean_(d.last), test = String(d.test);
+      if (staleRound_(d)) return out_({ ok: false, error: 'old round' });
+      var pf = clean_(d.first), pl = clean_(d.last), test = String(d.test), dev = dev_(d.dev);
       if (!pf || !pl) return out_({ ok: false, error: 'name required' });
       var ps = progSheet_(), ts = Number(d.ts) || 0;
       // Учень виправив ім'я, прізвище чи клас: прибираємо його старий рядок
@@ -156,31 +174,36 @@ function doPost(e) {
         var pp = d.prev, ptest = okTest_(pp.test) ? String(pp.test) : test;
         var same = pp.cls === d.cls && ptest === test && same_(pp.last, pl) && same_(pp.first, pf);
         var old = same ? 0 : progFind_(ps, pp.cls, ptest, clean_(pp.last), clean_(pp.first));
-        if (old) ps.deleteRow(old);
+        // Прибираємо лише запис, створений з цього самого пристрою
+        if (old && dev && String(ps.getRange(old, C_DEV + 1).getValue()) === dev) ps.deleteRow(old);
       }
       var at = progFind_(ps, d.cls, test, pl, pf);
       // Запити можуть прийти не в тому порядку: старіші за збережений ігноруємо
       if (at && ts && Number(ps.getRange(at, 13).getValue()) > ts) return out_({ ok: true, stale: true });
       var prow = [new Date(), d.cls, pl, pf, num_(d.pct, 100), num_(d.done, 100) + ' з ' + num_(d.total, 100), clean_(d.now, 60),
-        num_(d.leaves, 100000), num_(d.away, 1000000), d.fin ? 'так' : '', d.out ? 'так' : '', av_(d.av), ts, Date.now(), "'" + test];
+        num_(d.leaves, 100000), num_(d.away, 1000000), d.fin ? 'так' : '', d.out ? 'так' : '', av_(d.av), ts, Date.now(), "'" + test, dev];
       if (at) ps.getRange(at, 1, 1, PHEAD.length).setValues([prow]); else ps.appendRow(prow);
       progDirty_();
       return out_({ ok: true });
     }
 
     if (act === 'submit') {
-      if (!CLASS_RE.test(String(d.cls)) || !okTest_(d.test)) return out_({ ok: false, error: 'bad class' });
+      if (!CLASS_RE.test(String(d.cls)) || !okTest_(d.test) || !known_()[d.test]) return out_({ ok: false, error: 'bad class' });
       if (!codeOk_(d.cls, d.code)) return out_({ ok: false, error: 'bad code' });
-      var first = clean_(d.first), last = clean_(d.last);
-      var score = Number(d.score), max = Number(d.max), grade = Number(d.grade), stars = Number(d.stars) || 0;
+      if (staleRound_(d)) return out_({ ok: false, error: 'old round' });
+      var first = clean_(d.first), last = clean_(d.last), sdev = dev_(d.dev);
+      var score = Number(d.score), max = Number(d.max), grade = Number(d.grade), stars = num_(d.stars, 1000);
       if (!first || !last) return out_({ ok: false, error: 'name required' });
       if (!(max > 0 && max <= 1000) || !(score >= 0 && score <= max) || !(grade >= 1 && grade <= 12)) return out_({ ok: false, error: 'bad numbers' });
       // Учень перейшов у правильний клас або виправив ім'я після завершення: прибираємо стару оцінку.
-      // Це можна лише з правильним кодом того класу, де лежить стара оцінка.
+      // Це можна лише з правильним кодом того класу, де лежить стара оцінка, і лише з того самого пристрою.
       var pv = d.prev;
-      if (pv && CLASS_RE.test(String(pv.cls)) && codeOk_(pv.cls, pv.code) && (pv.cls !== d.cls || !same_(pv.first, first) || !same_(pv.last, last))) {
+      if (pv && sdev && CLASS_RE.test(String(pv.cls)) && codeOk_(pv.cls, pv.code) && (pv.cls !== d.cls || !same_(pv.first, first) || !same_(pv.last, last))) {
         var osh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName_(pv.cls, String(d.test)));
-        if (osh) { var od = rows_(osh); for (var oi = od.length - 1; oi >= 0; oi--) if (same_(od[oi][2], pv.last) && same_(od[oi][3], pv.first)) osh.deleteRow(oi + 2); }
+        if (osh) {
+          var oc = head_(osh).indexOf('Пристрій'), od = rows_(osh);
+          if (oc >= 0) for (var oi = od.length - 1; oi >= 0; oi--) if (same_(od[oi][2], pv.last) && same_(od[oi][3], pv.first) && String(od[oi][oc]) === sdev) osh.deleteRow(oi + 2);
+        }
       }
       var sh = sheet_(d.cls, String(d.test)), head = head_(sh), data = rows_(sh);
       for (var i = 0; i < data.length; i++) {
@@ -194,6 +217,7 @@ function doPost(e) {
         row[c1] = num_(d.leaves, 100000); row[c2] = num_(d.away, 1000000);
       }
       if (av_(d.av)) { var c3 = col_(sh, head, 'Аватар'); while (row.length <= c3) row.push(''); row[c3] = av_(d.av); }
+      if (sdev) { var c4 = col_(sh, head, 'Пристрій'); while (row.length <= c4) row.push(''); row[c4] = sdev; }
       var det = d.details || {};
       Object.keys(det).slice(0, 40).forEach(function (k) {
         var x = det[k] || {}, col = col_(sh, head, 'Рівень: ' + clean_(x.t || k, 40));
@@ -205,11 +229,12 @@ function doPost(e) {
       return out_({ ok: true });
     }
 
-    if (d.key !== ADMIN_KEY) return out_({ ok: false, error: 'wrong key' });
+    if (!keyOk_(d.key)) return out_({ ok: false, error: 'wrong key' });
     if (act === 'setactive') {
       var a = {}, src = d.active || {};
       Object.keys(src).forEach(function (g) { if (/^\d{1,2}$/.test(g) && (src[g] === '' || okTest_(src[g]))) a[g] = src[g]; });
       props_().setProperty('active', JSON.stringify(a));
+      var kn = known_(); Object.keys(a).forEach(function (g) { if (a[g]) kn[a[g]] = 1; }); props_().setProperty('known', JSON.stringify(Object.keys(kn)));
       return out_({ ok: true, active: a });
     }
     if (act === 'setcodes') {
@@ -269,7 +294,7 @@ function doPost(e) {
 
 function doGet(e) {
   var p = e.parameter || {};
-  if (p.action === 'auth') { Utilities.sleep(300); return out_({ ok: p.key === ADMIN_KEY }); }
+  if (p.action === 'auth') { Utilities.sleep(300); return out_({ ok: keyOk_(p.key) }); }
   ensureSchema_();
   if (p.action === 'status') {
     var all = props_().getProperties(), reviews = {}, rounds = {};
@@ -282,9 +307,10 @@ function doGet(e) {
   if (p.action === 'join') {
     // Учень вводить код класу: повертаємо клас і активну контрольну його паралелі
     Utilities.sleep(400);
+    if (blocked_('join', 80)) return out_({ ok: false, error: 'busy' });
     var n = normCode_(p.code), cs = codes_(), found = '';
     if (n) Object.keys(cs).forEach(function (c) { if (normCode_(cs[c]) === n) found = c; });
-    if (!found) return out_({ ok: false });
+    if (!found) { failed_('join'); return out_({ ok: false }); }
     return out_({ ok: true, cls: found, test: testFor_(found, '') });
   }
   var cls = p['class'];
@@ -293,7 +319,7 @@ function doGet(e) {
   if (!test) return out_({ rows: [], test: '', now: Date.now() });
   if (p.action === 'live' || p.action === 'tv') {
     // live — для панелі вчителя (виходи зі сторінки), tv — для екрана в класі (без виходів). Обидва лише з ключем вчителя.
-    if (p.key !== ADMIN_KEY) return out_({ error: 'wrong key' });
+    if (!keyOk_(p.key)) return out_({ error: 'wrong key' });
     var live = progRows_().filter(function (r) { return r[1] === cls && tval_(r[C_TEST]) === test; }).map(function (r) {
       return { t: Number(r[13]) || new Date(r[0]).getTime(), ts: Number(r[12]) || 0, last: strip_(r[2]), first: strip_(r[3]), pct: Number(r[4]) || 0, done: String(r[5]), now: strip_(r[6]), leaves: Number(r[7]) || 0, away: Number(r[8]) || 0, fin: r[9] === 'так', out: r[10] === 'так', av: av_(r[11]) };
     });
@@ -320,7 +346,7 @@ function doGet(e) {
     return out_({ test: test, rows: data.slice(0, 40).map(function (r) { return { n: r.first + ' ' + r.last, av: r.av, g: r.g, s: r.s, st: r.st }; }) });
   }
   if (p.action === 'list') {
-    if (p.key !== ADMIN_KEY) return out_({ error: 'wrong key' });
+    if (!keyOk_(p.key)) return out_({ error: 'wrong key' });
     return out_({ test: test, rows: data });
   }
   return out_({ error: 'unknown action' });

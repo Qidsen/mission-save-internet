@@ -397,6 +397,9 @@
   .pw-eye { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border: 0; border-radius: 12px; background: transparent; color: var(--muted); cursor: pointer; display:flex; align-items:center; justify-content:center; }
   .pw-eye:hover, .pw-eye[aria-pressed="true"] { color: var(--cyan); background: rgba(53,224,240,.1); }
   .pw-eye .ico { width: 26px; height: 26px; }
+  .whoami { display:flex; flex-direction:column; align-items:center; gap: 8px; text-align:center; }
+  .whoami > b { font-family: var(--display); font-size: 1.3rem; }
+  .whoami .btn { width: 100%; }
   @media (max-width: 420px) { body { font-size: 16.5px; } .slide { flex-basis: 90%; } .grade { font-size: 3.8rem; } .tabs .btn { font-size: .85rem; } .lv b { font-size: .92rem; } .lv .stars { font-size: 1rem; } }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
@@ -643,14 +646,17 @@ function rankFor(p) { return p >= 0.9 ? 'Кіберкапітан' : p >= 0.7 ? 
 /* ===== Зв'язок із таблицею ===== */
 function apiEnabled() { return API_URL.indexOf('https://') === 0; }
 function qs(o) { return Object.keys(o).map(function (k) { return k + '=' + encodeURIComponent(o[k]); }).join('&'); }
-function apiGet(o) { return fetch(API_URL + (API_URL.indexOf('?') >= 0 ? '&' : '?') + qs(o)).then(function (r) { return r.json(); }); }
-function apiPost(o, keep) { return fetch(API_URL, { method: 'POST', keepalive: !!keep, headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(o) }).then(function (r) { return r.json(); }); }
-function apiSubmit(o) {
-  o.action = 'submit';
-  return apiPost(o).catch(function () {
-    return fetch(API_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(o) }).then(function () { return { ok: true, unconfirmed: true }; });
-  });
+/* Запит із тайм-аутом 25 с: зависла відповідь не блокує кнопки назавжди. Не-JSON відповідь (сторінка помилки Google) — це помилка. */
+function fetchJson(url, opts) {
+  var ctl = typeof AbortController === 'function' ? new AbortController() : null, t = null;
+  if (ctl) { opts = Object.assign({ signal: ctl.signal }, opts || {}); t = setTimeout(function () { ctl.abort(); }, 25000); }
+  return fetch(url, opts).then(function (r) { if (t) clearTimeout(t); return r.json(); }, function (e) { if (t) clearTimeout(t); throw e; });
 }
+function apiGet(o) { return fetchJson(API_URL + (API_URL.indexOf('?') >= 0 ? '&' : '?') + qs(o)); }
+function apiPost(o, keep) { return fetchJson(API_URL, { method: 'POST', keepalive: !!keep, headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(o) }); }
+function apiSubmit(o) { o.action = 'submit'; return apiPost(o); }
+/* Випадковий ідентифікатор пристрою: лише з нього можна прибрати свій старий запис */
+function devId() { var d = store('imi_dev'); if (!d || !/^[a-z0-9]{8,32}$/.test(d)) { d = ''; for (var i = 0; i < 16; i++) d += 'abcdefghijklmnopqrstuvwxyz0123456789'.charAt(Math.floor(Math.random() * 36)); store('imi_dev', d); } return d; }
 
 /* ===== Малюнки для каруселі (анімовані SVG) ===== */
 var ART = {
@@ -725,7 +731,7 @@ function showWelcome(msg, edit) {
     if (!first.value.trim() || !last.value.trim()) { err.textContent = 'Заповни ім\'я та прізвище.'; toast('Заповни ім\'я та прізвище.', 'bad'); return; }
     var prev = { first: state.first.trim(), last: state.last.trim(), cls: state.cls, test: TEST ? TEST.id : '' };
     state.first = first.value.trim(); state.last = last.value.trim(); state.av = avSel; saveState(); sstore('imi_started', '1');
-    var moved = prev.first && prev.test && (prev.first !== state.first || prev.last !== state.last);
+    var moved = edit && prev.first && prev.test && (prev.first !== state.first || prev.last !== state.last);
     if (!applyActive()) { showNoTest(); return; }
     showMenu();
     toast(edit ? 'Досьє оновлено.' : 'Місію розпочато! Успіху, агенте ' + state.first + '!', 'ok');
@@ -740,6 +746,7 @@ function showWelcome(msg, edit) {
       h('div', { class: 'card' }, [classChip, h('div', { class: 'row', style: 'margin-top:10px' }, [first, last]), h('b', { style: 'display:block;margin-top:14px', text: 'Аватарка' }), picker, err, btn])]);
     return;
   }
+  if (!edit && !isTeacher() && state.first.trim() && state.last.trim() && !sstore('imi_started')) { showWhoAmI(); return; }
   var tips = [['Що це?', (TEST ? TEST.about + ' Це гра з ' + LEVELS.length + ' рівнів, розрахована на один урок.' : 'Контрольна робота з інформатики у вигляді гри: кілька рівнів з різними завданнями на один урок.') + ' Не поспішай і уважно читай завдання.'],
     ['Правила', 'Рівні можна проходити в будь-якому порядку. Усередині рівня можна повертатися до попередньої частини й змінювати відповіді, а також вийти в меню й продовжити пізніше. Коли натиснеш «Завершити рівень», відповіді зафіксуються. Якщо браузер закриється або зникне інтернет, відкрий сторінку знову: гра продовжиться з місця зупинки. Підказок немає, працюй самостійно. Не виходь зі сторінки: перехід в іншу вкладку чи застосунок фіксується, і вчитель це бачить.'],
     ['Оцінка', 'Коли пройдеш усі рівні, одразу побачиш свою оцінку за 12-бальною шкалою. Результат автоматично потрапить до вчителя й до таблиці лідерів твого класу (там видно твоє ім\'я, прізвище й аватарку).']];
@@ -775,11 +782,13 @@ function showGate(msg) {
     h('label', { class: 'gate-field' }, [ico('shield', 'sm'), code]), btn, h('a', { href: '#admin', class: 'gate-staff', text: 'Для вчителя' })]);
   function setState(cls, text) { wrap.classList.remove('denied', 'checking', 'granted'); void wrap.offsetWidth; if (cls) wrap.classList.add(cls); status.textContent = text; }
   function go() {
+    if (btn.disabled) return;
     var v = code.value.trim();
     if (!v) { setState('denied', 'Спершу введи код.'); code.focus(); return; }
     if (!apiEnabled()) { setState('denied', 'Сайт не підключений до таблиці вчителя.'); return; }
     btn.disabled = true; setState('checking', 'Перевіряю код…');
     apiGet({ action: 'join', code: v }).then(function (r) {
+      if (r && r.error === 'busy') { btn.disabled = false; bot.innerHTML = mascotSvg('sad'); setState('denied', 'Забагато неправильних спроб. Зачекай 2 хвилини й спробуй ще раз.'); return; }
       if (!r || !r.ok) { btn.disabled = false; bot.innerHTML = mascotSvg('sad'); setState('denied', 'Код не підійшов. Перевір, чи правильно переписав.'); code.focus(); code.select(); return; }
       var had = !!(state.first.trim() && state.last.trim() && sstore('imi_started'));
       var prev = had && TEST ? { first: state.first.trim(), last: state.last.trim(), cls: state.cls, test: TEST.id } : null;
@@ -802,6 +811,23 @@ function showGate(msg) {
   document.body.classList.add('gatemode');
   render([wrap]);
   setTimeout(function () { code.focus(); }, 60);
+}
+
+/* На цьому пристрої вже працював учень: уточнюємо, хто зараз за комп'ютером */
+function showWhoAmI() {
+  render([h('div', { class: 'topbar' }, [h('button', { class: 'btn alt', text: '‹ Інший код', onclick: function () { otherCode(); } }), h('span', { class: 'muted', text: 'Клас ' + state.cls })]),
+    h('h1', { text: 'Це ти?' }),
+    mascot('На цьому пристрої вже грав агент. Якщо це ти, продовжуй з місця зупинки. Якщо ні, почни як новий учень.', 'wow'),
+    h('div', { class: 'card whoami' }, [avatar(state.av, 'xl'), h('b', { text: displayName() }), h('span', { class: 'muted', text: state.cls }),
+      h('button', { class: 'btn big', text: 'Так, це я, продовжити', onclick: function () { sstore('imi_started', '1'); route(); if (TEST) sendProgress(); } }),
+      h('button', { class: 'btn alt big', text: 'Ні, я новий учень', onclick: newStudent })])]);
+}
+/* Новий учень на тому самому пристрої: стираємо дані попереднього, код класу лишаємо */
+function newStudent() {
+  var pre = isTeacher() ? 'imt_' : 'imi_', keep = ['imi_code', 'imi_active', 'imi_ver'].map(function (k) { return k.replace('imi_', pre); }), rm = [];
+  try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k.indexOf(pre) === 0 && keep.indexOf(k) < 0) rm.push(k); } rm.forEach(function (k) { localStorage.removeItem(k); }); } catch (e) {}
+  state.first = ''; state.last = ''; state.av = ''; state.stars = {}; state.scores = {}; W = { leaves: 0, away: 0 }; TEST = null; LEVELS = []; CUR = null;
+  applyActive(); showWelcome();
 }
 
 /* Для паралелі учня зараз немає активної контрольної */
@@ -934,7 +960,7 @@ function showReview() {
 function resultPayload() {
   var t = totals(), details = {}, starSum = 0;
   LEVELS.forEach(function (l) { details[l.id] = { t: l.title, s: state.scores[l.id], m: l.max }; starSum += state.stars[l.id] || 0; });
-  return { test: TEST.id, code: store('imi_code') || '', first: state.first.trim(), last: state.last.trim(), cls: state.cls, score: t.sum, max: t.max, grade: gradeFor(t.sum, t.max), stars: starSum, details: details, leaves: W.leaves, away: Math.round(W.away / 1000), av: state.av };
+  return { test: TEST.id, code: store('imi_code') || '', first: state.first.trim(), last: state.last.trim(), cls: state.cls, score: t.sum, max: t.max, grade: gradeFor(t.sum, t.max), stars: starSum, details: details, leaves: W.leaves, away: Math.round(W.away / 1000), av: state.av, dev: devId(), round: store('imi_round') || undefined };
 }
 /* Оцінка переїжджає: учень після завершення перейшов у свій клас або виправив ім'я */
 function moveResult(prev) {
@@ -973,6 +999,7 @@ function showSummary() {
       .then(function (r) {
         if (r && r.ok) { status.className = 'fb ok'; status.textContent = r.unconfirmed ? 'Результат надіслано (підтвердження не отримано).' : 'Результат надіслано вчителю!'; toast(r.duplicate ? 'Результат уже був у вчителя, зараховано перший.' : 'Результат надіслано вчителю!', 'ok'); return loadBoard(boardBox, state.cls, true); }
         if (r && r.error === 'bad code') { codeRejected(); return; }
+        if (r && r.error === 'old round') { refreshStatus(); return; }
         fail('Не вдалося надіслати: ' + ((r && r.error) || 'невідома помилка') + '.');
       }).catch(function () { fail('Немає зв\'язку з таблицею.'); });
   }
@@ -1023,7 +1050,7 @@ function sendProgress(prev) {
   if (!canReport()) return;
   var p = progressNow(), t = p.t;
   apiPost({ action: 'progress', test: TEST.id, code: store('imi_code') || '', first: state.first.trim(), last: state.last.trim(), cls: state.cls, done: t.done, total: LEVELS.length,
-    pct: p.pct, now: p.now, leaves: W.leaves, away: Math.round(W.away / 1000), fin: t.all, out: !!W.hiddenAt, av: state.av, ts: Date.now(), prev: prev || undefined }, true).then(function (r) { if (r && r.error === 'bad code') codeRejected(); }).catch(function () {});
+    pct: p.pct, now: p.now, leaves: W.leaves, away: Math.round(W.away / 1000), fin: t.all, out: !!W.hiddenAt, av: state.av, ts: Date.now(), prev: prev || undefined, dev: devId(), round: store('imi_round') || undefined }, true).then(function (r) { if (r && r.error === 'bad code') codeRejected(); else if (r && r.error === 'old round') refreshStatus(); }).catch(function () {});
   lastTick = p.pct + '|' + p.now;
 }
 /* Проміжне оновлення під час відповідей: не частіше ніж раз на 1,5 с і лише коли щось змінилося */
@@ -1103,9 +1130,9 @@ function adminTestFor(cls) {
 function card(title, desc, kids) { return h('div', { class: 'card' }, [h('b', { text: title }), desc ? h('p', { class: 'muted', style: 'margin:4px 0 10px', text: desc }) : null].concat(kids)); }
 function showAdmin(cls, tab) {
   stopAdminTimer();
-  if (!STATUS && apiEnabled() && !showAdmin.loading) {
-    showAdmin.loading = true; render([h('div', { class: 'muted', text: 'Завантажую…' })]);
-    refreshStatus().then(function () { showAdmin.loading = false; showAdmin(cls, tab); });
+  if (!STATUS && apiEnabled() && !showAdmin.tried) {
+    showAdmin.tried = true; render([h('div', { class: 'muted', text: 'Завантажую…' })]);
+    refreshStatus().then(function () { if (!STATUS) toast('Не вдалося отримати налаштування з таблиці. Перевір інтернет.', 'bad'); showAdmin(cls, tab); });
     return;
   }
   cls = cls || sstore('imi_acls') || CLASSES[0]; tab = tab || sstore('imi_atab') || 'live';
@@ -1301,7 +1328,7 @@ function showTV(cls) {
 }
 
 function route() {
-  stopAdminTimer(); document.body.classList.remove('tvmode', 'gatemode');
+  stopAdminTimer(); stopTimers(); CUR = null; document.body.classList.remove('tvmode', 'gatemode');
   var hs = decodeURIComponent(location.hash || '');
   if ((hs.indexOf('#tv') === 0 || hs === '#admin') && !staffAuthed()) showStaffLogin();
   else if (hs.indexOf('#tv') === 0) showTV(hs.split('=')[1]);
@@ -1366,7 +1393,7 @@ function postView(it, cur, pick) {
 function pgChoice(Q, lead) { return { type: 'choice', Q: Q, lead: lead }; }
 function pgLabel(cfg) { return { type: 'label', cfg: cfg, lead: cfg.lead }; }
 function pgSort(R) { return { type: 'sort', R: R }; }
-function pgOrder(R) { return { type: 'order', R: R, lead: 'Натискай картки по черзі, щоб пронумерувати їх. Повторне натискання прибирає номер. Кожна картка не на своєму місці забирає бал.' }; }
+function pgOrder(R) { return { type: 'order', R: R, lead: 'Натискай картки по черзі, щоб пронумерувати їх. Повторне натискання прибирає номер. Чим менше карток не на своєму місці, тим більше балів.' }; }
 
 function choiceItems(pg, st) {
   return pg.Q.map(function (q, k) { return { head: q.head, text: q.text, hint: q.hint, view: q.view, multi: !!q.multi, opts: st.ord[k], correct: q.multi ? q.ok : [q.ok], pts: q.pts || 1, img: q.img, alt: q.alt }; });
@@ -1577,20 +1604,21 @@ function playBlitz(done, l) {
   var qs = P.ids.map(function (k) { return BLITZ[k]; }), i = P.i, score = P.score, locked = false, left, box = h('div');
   setProg(id, P);
   function end() { stopTimers(); saveReview(id, P.rows); done(score); }
-  function next() { if (!CUR || CUR.id !== id) return; i++; P.i = i; P.score = score; P.open = false; setProg(id, P); if (i >= qs.length) end(); else show(); }
+  function next() { if (!CUR || CUR.id !== id) return; i = P.i; if (i >= qs.length) end(); else show(); }
   function show() {
     stopTimers(); locked = false; left = BLITZ_SEC; P.open = true; setProg(id, P); CURFRAC = i / qs.length; tickProgress();
+    var deadline = Date.now() + BLITZ_SEC * 1000;
     var q = qs[i], bar = h('i'), fb = h('div', { class: 'fb', 'aria-live': 'polite' });
     function answer(val, timeout) {
       if (locked) return; locked = true; stopTimers(); var ok = !timeout && val === q[1]; if (ok) score++;
-      P.rows.push({ q: q[0], mine: timeout ? 'час вийшов' : (val ? 'Правда' : 'Неправда'), right: q[1] ? 'Правда' : 'Неправда', ok: ok }); P.score = score; P.open = false; setProg(id, P);
+      P.rows.push({ q: q[0], mine: timeout ? 'час вийшов' : (val ? 'Правда' : 'Неправда'), right: q[1] ? 'Правда' : 'Неправда', ok: ok }); P.score = score; P.i = i + 1; P.open = false; setProg(id, P);
       fb.textContent = timeout ? 'Час вийшов.' : 'Відповідь прийнято.'; setTimeout(next, 600);
     }
     box.innerHTML = '';
     [h('div', { class: 'muted', text: 'Питання ' + (i + 1) + ' з ' + qs.length }),
      h('div', { class: 'bar' }, [bar]), h('div', { class: 'card bigq' }, [ico('bolt', 'lg', '#fb923c'), h('span', { text: q[0] })]),
      h('div', { class: 'row' }, [h('button', { class: 'btn ok', style: 'flex:1', text: 'Правда', onclick: function () { answer(true, false); } }), h('button', { class: 'btn bad', style: 'flex:1', text: 'Неправда', onclick: function () { answer(false, false); } })]), fb].forEach(function (n) { box.appendChild(n); });
-    timers.push(setInterval(function () { left -= 0.1; bar.style.width = Math.max(0, left / BLITZ_SEC * 100) + '%'; if (left <= 0) answer(null, true); }, 100));
+    timers.push(setInterval(function () { left = (deadline - Date.now()) / 1000; bar.style.width = Math.max(0, left / BLITZ_SEC * 100) + '%'; if (left <= 0) answer(null, true); }, 100));
   }
   if (i >= qs.length) { saveReview(id, P.rows); done(score); return; }
   render([levelTop(title), h('p', { class: 'lead', text: 'На кожне твердження ' + BLITZ_SEC + ' секунд. Встигни відповісти: правда це чи ні. Якщо оновити сторінку або вийти в меню, поточне питання зарахується як помилка.' }), box]); show();
@@ -1620,7 +1648,7 @@ function refreshStatus(manual) {
       }
     }
     var now = TEST ? TEST.id : null;
-    if (gameOpen && (now !== before || manual) && !CUR) { route(); if (TEST) sendProgress(); }
+    if (gameOpen && (now !== before || manual) && !CUR && !document.body.classList.contains('gatemode')) { route(); if (TEST) sendProgress(); }
     if (manual && !TEST) toast('Контрольна для твого класу ще не відкрита.', 'info');
   }).catch(function () { if (manual) toast('Немає зв\'язку. Перевір інтернет.', 'bad'); });
 }
