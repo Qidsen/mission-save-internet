@@ -568,16 +568,28 @@ function finishLevel(l, score) {
 
 /* ===== Розбір помилок (відкриває вчитель) ===== */
 function showReview() {
-  var box = h('div');
+  stopConfetti(); var box = h('div');
   render([h('div', { class: 'topbar' }, [h('button', { class: 'btn alt', text: '‹ Меню', onclick: function () { showMenu(); } }), h('b', { text: 'Розбір помилок' })]), box]);
   function draw() {
     box.innerHTML = ''; var rv = getReview(), any = false;
     LEVELS.forEach(function (l) {
       var rows = rv[l.id] || [], bad = rows.filter(function (r) { return !r.ok; });
-      var card = h('div', { class: 'card' }, [h('h3', { text: l.title + ': правильно ' + (rows.length - bad.length) + ' з ' + rows.length })]);
+      var sc = state.scores[l.id];
+      var card = h('div', { class: 'card' }, [h('h3', { text: l.title + (sc != null ? ': ' + sc + ' з ' + l.max + ' балів' : '') })]);
       if (!rows.length) card.appendChild(h('p', { class: 'muted', text: 'Немає даних.' }));
       else if (!bad.length) card.appendChild(h('p', { class: 'fb ok', text: 'Без помилок!' }));
-      bad.forEach(function (r) { any = true; card.appendChild(h('div', { class: 'srow', style: 'display:block' }, [h('div', { style: 'font-weight:700', text: r.q }), h('div', { style: 'color:var(--red)', text: 'Твоя відповідь: ' + r.mine }), h('div', { style: 'color:var(--green)', text: 'Правильно: ' + r.right })])); });
+      bad.forEach(function (r) {
+        any = true;
+        var parts = [h('div', { style: 'font-weight:700', text: r.q })];
+        if (r.max != null) {
+          parts.push(h('div', { style: 'color:' + (r.got ? 'var(--yellow)' : 'var(--red)') + ';font-weight:700', text: 'Зараховано ' + r.got + ' з ' + r.max + ' балів' }));
+          if (r.miss.length) parts.push(h('div', { style: 'color:var(--green)', text: 'Треба було ще позначити: ' + r.miss.join('; ') }));
+          if (r.extra.length) parts.push(h('div', { style: 'color:var(--red)', text: 'Позначено зайве: ' + r.extra.join('; ') }));
+        } else {
+          parts.push(h('div', { style: 'color:var(--red)', text: 'Твоя відповідь: ' + r.mine }), h('div', { style: 'color:var(--green)', text: 'Правильно: ' + r.right }));
+        }
+        card.appendChild(h('div', { class: 'srow', style: 'display:block' }, parts));
+      });
       box.appendChild(card);
     });
   }
@@ -737,7 +749,17 @@ function playChoiceList(done, id, title, lead, build, part) {
     return it.multi ? Math.max(0, it.pts - err) : (err ? 0 : it.pts);
   }
   function total() { var t = 0; B.items.forEach(function (it, k) { t += pts(it, P.sel[k] || []); }); return t; }
-  function rows() { return B.items.map(function (it, k) { var got = P.sel[k] || []; return { q: it.text, mine: got.join('; ') || '—', right: it.correct.join('; '), ok: pts(it, got) === it.pts }; }); }
+  function rows() {
+    return B.items.map(function (it, k) {
+      var got = P.sel[k] || [], r = { q: it.text, mine: got.join('; ') || '—', right: it.correct.join('; '), ok: pts(it, got) === it.pts };
+      if (it.multi) {
+        r.got = pts(it, got); r.max = it.pts;
+        r.miss = it.correct.filter(function (o) { return got.indexOf(o) < 0; });
+        r.extra = got.filter(function (o) { return it.correct.indexOf(o) < 0; });
+      }
+      return r;
+    });
+  }
   if (P.fin) { saveReview(id, rows()); done(total()); return; }
   var box = h('div'), info = h('div', { class: 'muted' }), btn, lastHead = null;
   function answered() { return B.items.filter(function (it, k) { return (P.sel[k] || []).length > 0; }).length; }
