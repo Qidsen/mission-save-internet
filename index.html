@@ -299,7 +299,7 @@
   .stat.bad { border-color: var(--red); background: rgba(255,111,138,.14); }
   .stat.warnc { border-color: var(--yellow); background: rgba(255,216,74,.1); }
   .live { display:grid; gap: 8px; }
-  .live-row { display:grid; grid-template-columns: auto minmax(0, 1.4fr) minmax(0, 1fr) auto auto; gap: 12px; align-items:center; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px; }
+  .live-row { display:grid; grid-template-columns: auto minmax(0, 1.4fr) minmax(0, 1fr) auto auto auto; gap: 12px; align-items:center; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px; }
   .live-row.out { border-color: var(--red); background: rgba(255,111,138,.14); }
   .live-row.fin { border-color: rgba(88,227,154,.6); }
   .live-n { min-width: 0; } .live-n b { display:block; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -311,10 +311,13 @@
   .live-l small { color: var(--muted); font-size: .72rem; }
   .live-l.has b { color: var(--yellow); }
   .live-t { color: var(--muted); font-size: .8rem; white-space: nowrap; } .live-t.stale { color: var(--orange); }
+  .live-del { width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--muted); font-size: 1.2rem; font-weight: 800; cursor:pointer; }
+  .live-del:hover { color: var(--red); border-color: var(--red); }
   @media (max-width: 560px) {
     .live-row { grid-template-columns: auto minmax(0, 1fr) auto; }
     .live-p { grid-column: 2 / 4; grid-row: 2; } .live-t { grid-column: 3; grid-row: 1; }
     .live-l { grid-column: 1; grid-row: 2; min-width: 0; }
+    .live-del { grid-column: 3; grid-row: 2; justify-self: end; }
   }
 
   /* Екран для телевізора */
@@ -904,7 +907,11 @@ function showAdmin(cls, tab) {
             avatar(r.av), h('div', { class: 'live-n' }, [h('b', { text: r.last + ' ' + r.first }), h('small', { class: r.out && !r.fin ? 'red' : '', text: r.fin ? 'Завершив контрольну' : r.out ? 'Зараз поза сторінкою!' : r.now })]),
             h('div', { class: 'live-p' }, [h('div', { class: 'pbar' }, [h('i', { style: 'width:' + r.pct + '%' })]), h('span', { text: r.pct + '%' })]),
             h('div', { class: 'live-l' + (r.leaves ? ' has' : ''), title: 'Виходи зі сторінки' }, [h('b', { text: String(r.leaves) }), h('small', { text: r.leaves ? 'виходів, ' + fmtDur(r.away * 1000) : 'виходів' })]),
-            h('div', { class: 'live-t' + (stale ? ' stale' : ''), text: ago(res.now - r.t) })]));
+            h('div', { class: 'live-t' + (stale ? ' stale' : ''), text: ago(res.now - r.t) }),
+            (function () { var del = h('button', { class: 'live-del', title: 'Видалити учня', 'aria-label': 'Видалити ' + r.last + ' ' + r.first, text: '×', onclick: function () {
+              if (!ask('Видалити «' + r.last + ' ' + r.first + '» з прогресу та результатів класу ' + cls + '?')) return;
+              act(del, function () { return apiPost({ action: 'delete', key: k(), cls: cls, first: r.first, last: r.last }); }, '«' + r.last + ' ' + r.first + '» видалено.', function () { loadLive(false); });
+            } }); return del; })()]));
         });
         list.appendChild(tb);
         if (manual) toast('Прогрес оновлено.', 'info');
