@@ -236,10 +236,16 @@
   .hot-n { width: 30px; height: 30px; border-radius: 50%; background: #1b1740; color:#fff; font-family: var(--display); font-weight: 800; font-size: .78rem; display:flex; align-items:center; justify-content:center; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.4); transition: transform .12s; }
   .hot.set .hot-n { background: var(--green); color:#052e14; }
   .hot.cur .hot-n { background: var(--yellow); color:#3a2c00; transform: scale(1.18); box-shadow: 0 0 0 4px rgba(255,216,74,.45), 0 2px 8px rgba(0,0,0,.4); }
-  .hot-l { display:none; }
-  @media (min-width: 620px) {
-    .hot-l { display:block; position:absolute; left:50%; top:100%; transform: translateX(-50%); margin-top: 3px; background:#1b1740; color:#fff; font-size: .68rem; font-weight: 700; padding: 2px 7px; border-radius: 6px; white-space: nowrap; pointer-events:none; }
-  }
+  .hot-l { position:absolute; left:50%; top:100%; transform: translateX(-50%); margin-top: 2px; background:#1b1740; color:#fff; font-size: .68rem; line-height: 1.25; font-weight: 700; padding: 2px 7px; border-radius: 6px; white-space: nowrap; pointer-events:none; box-shadow: 0 2px 6px rgba(0,0,0,.35); }
+  .hot.al .hot-l { left: -4px; transform: none; }
+  .hot.ar .hot-l { left: auto; right: -4px; transform: none; }
+  .hot.pl .hot-l { left: auto; right: 100%; top: 50%; transform: translateY(-50%); margin: 0 4px 0 0; }
+  .hot.pr .hot-l { left: 100%; top: 50%; transform: translateY(-50%); margin: 0 0 0 4px; }
+  .hot.pt .hot-l { top: auto; bottom: 100%; margin: 0 0 2px; }
+  .hot.cur .hot-l { background: #3a2c00; }
+  @media (max-width: 619px) { .hot-n { width: 26px; height: 26px; font-size: .7rem; border-width: 2px; } .hot-l { font-size: .58rem; padding: 1px 5px; border-radius: 5px; } }
+  .tile.used { border-color: rgba(88,227,154,.55); }
+  .tile .uses { display:inline-flex; align-items:center; justify-content:center; min-width: 22px; height: 22px; padding: 0 5px; margin-left: 8px; border-radius: 11px; background: var(--green); color:#052e14; font-size: .72rem; font-weight: 800; }
   .lf-now { display:flex; align-items:center; gap:10px; font-family: var(--display); font-size: .92rem; font-weight: 700; margin: 6px 0 10px; }
   .lf-list { display:grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 6px; margin: 14px 0 8px; }
   .lf-row { display:flex; gap: 8px; align-items:center; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 6px 10px; color: var(--ink); cursor:pointer; text-align:left; font-weight: 700; min-height: 44px; }
@@ -787,18 +793,22 @@ function playLabel(done, id, title, cfg, part) {
   });
   function draw() {
     hots.forEach(function (b, i) {
-      b.className = 'hot' + (P.sel[i] != null ? ' set' : '') + (i === cur ? ' cur' : '');
+      var s = cfg.slots[i];
+      b.className = 'hot' + (P.sel[i] != null ? ' set' : '') + (i === cur ? ' cur' : '') + (s.lp ? ' p' + s.lp : s.x < 25 ? ' al' : s.x > 75 ? ' ar' : '');
       b.innerHTML = ''; b.appendChild(h('span', { class: 'hot-n', text: String(i + 1) }));
       if (P.sel[i] != null) b.appendChild(h('span', { class: 'hot-l', text: P.sel[i] }));
     });
-    now.innerHTML = ''; now.appendChild(h('span', { class: 'n', text: String(cur + 1) })); now.appendChild(document.createTextNode(' Обери підпис для позначки ' + (cur + 1)));
+    now.innerHTML = ''; now.appendChild(h('span', { class: 'n', text: String(cur + 1) }));
+    now.appendChild(document.createTextNode(P.sel[cur] != null ? ' Позначка ' + (cur + 1) + ': «' + P.sel[cur] + '». Можна змінити.' : ' Обери підпис для позначки ' + (cur + 1)));
     bank.innerHTML = '';
     P.bank.forEach(function (w) {
-      bank.appendChild(h('button', { class: 'tile' + (P.sel[cur] === w ? ' sel' : ''), text: w, onclick: function () {
+      var uses = 0; for (var u = 0; u < n; u++) if (P.sel[u] === w) uses++;
+      bank.appendChild(h('button', { class: 'tile' + (P.sel[cur] === w ? ' sel' : '') + (uses ? ' used' : ''), 'aria-label': w + (uses ? ', уже використано ' + uses : '') }, [h('span', { text: w }), uses ? h('span', { class: 'uses', 'aria-hidden': 'true', text: '✓' + (uses > 1 ? ' ' + uses : '') }) : null]));
+      bank.lastChild.addEventListener('click', function () {
         P.sel[cur] = w; setProg(id, P);
         for (var k = 1; k < n; k++) { var j = (cur + k) % n; if (P.sel[j] == null) { cur = j; break; } }
         draw();
-      } }));
+      });
     });
     list.innerHTML = '';
     cfg.slots.forEach(function (s, i) {
@@ -991,9 +1001,9 @@ var LAN = { img: 'media/lan-scheme.png', alt: 'Схема локальної м�
   caption: 'Схема «Приклад організації локальної мережі з підключенням до інтернету», підручник, § 3, с. 34',
   lead: 'З підписів на схемі з підручника зникли слова. Поверни їх на місце! Один підпис можна використати кілька разів, а деякі підписи зайві.',
   slots: [
-    { x: 11.1, y: 6, ans: 'Інтернет' }, { x: 85.7, y: 6, ans: 'Модем із Wi-Fi-роутером' }, { x: 30.4, y: 25.1, ans: 'Wi-Fi-модуль' },
-    { x: 91.7, y: 27.8, ans: 'Мережева плата' }, { x: 28.4, y: 39.8, ans: 'Мережева плата' }, { x: 28.4, y: 68.7, ans: 'Мережева плата' },
-    { x: 19.1, y: 82.4, ans: 'Провайдер' }, { x: 58.3, y: 94, ans: 'Комутатор' }, { x: 40, y: 90, ans: 'Оптоволокно' }, { x: 64.6, y: 56, ans: 'Вита пара' }],
+    { x: 11.1, y: 6, ans: 'Інтернет' }, { x: 85.7, y: 6, ans: 'Модем із Wi-Fi-роутером' }, { x: 30.4, y: 25.1, ans: 'Wi-Fi-модуль', lp: 'l' },
+    { x: 91.7, y: 27.8, ans: 'Мережева плата' }, { x: 28.4, y: 39.8, ans: 'Мережева плата', lp: 'l' }, { x: 28.4, y: 68.7, ans: 'Мережева плата', lp: 'l' },
+    { x: 19.1, y: 82.4, ans: 'Провайдер' }, { x: 58.3, y: 94, ans: 'Комутатор', lp: 'r' }, { x: 40, y: 90, ans: 'Оптоволокно', lp: 't' }, { x: 64.6, y: 56, ans: 'Вита пара', lp: 'r' }],
   bank: ['Інтернет', 'Провайдер', 'Комутатор', 'Модем із Wi-Fi-роутером', 'Wi-Fi-модуль', 'Мережева плата', 'Оптоволокно', 'Вита пара', 'Сканер', 'Коаксіальний кабель', 'Блок живлення'] };
 var NET_POOL = ['Мережева плата', 'Комутатор', 'Модем', 'Wi-Fi-адаптер', 'Мережевий кабель'];
 var NET_Q = [
