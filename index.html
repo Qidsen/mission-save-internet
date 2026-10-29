@@ -266,6 +266,84 @@
   .sum-s { min-width: 64px; text-align: right; white-space: nowrap; color: var(--muted); font-variant-numeric: tabular-nums; }
   .sum-s b { color: var(--ink); font-size: 1.05rem; }
   .sumrow .stars { font-size: 1.15rem; letter-spacing: 1px; }
+  /* Аватарки */
+  .ava { width: 40px; height: 40px; border-radius: 12px; background: var(--avc); display:inline-flex; align-items:center; justify-content:center; flex:none; box-shadow: 0 3px 0 rgba(0,0,0,.3); }
+  .ava .ico { width: 64%; height: 64%; color: #12102e; }
+  .ava .ico svg { stroke-width: 3.5; }
+  .ava.sm { width: 30px; height: 30px; border-radius: 9px; box-shadow: 0 2px 0 rgba(0,0,0,.3); }
+  .ava.xl { width: 76px; height: 76px; border-radius: 22px; box-shadow: 0 5px 0 rgba(0,0,0,.3); }
+  .ava-q { font-family: var(--display); font-weight: 800; color: var(--muted); }
+  .gradebox .ava.xl { margin: 0 auto; display:flex; }
+  .who { display:inline-flex; align-items:center; gap: 10px; }
+  .avp { display:flex; gap: 16px; align-items:center; margin: 10px 0 4px; flex-wrap: wrap; }
+  .avp-prev { display:flex; flex-direction: column; align-items:center; gap: 6px; }
+  .avp-opts { flex: 1 1 240px; display:grid; gap: 10px; }
+  .avp-icons { display:grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  .avp-i { aspect-ratio: 1; border-radius: 12px; border: 2px solid var(--line); background: var(--card2); color: var(--ink); cursor:pointer; padding: 6px; display:flex; align-items:center; justify-content:center; min-height: 44px; }
+  .avp-i .ico { width: 100%; height: 100%; max-width: 34px; max-height: 34px; }
+  .avp-i.on { border-color: var(--yellow); background: rgba(255,216,74,.18); }
+  .avp-colors { display:grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+  .avp-c { width: 100%; max-width: 38px; aspect-ratio: 1; justify-self: center; border-radius: 50%; border: 3px solid transparent; cursor:pointer; box-shadow: 0 2px 0 rgba(0,0,0,.3); }
+  .avp-c.on { border-color: #fff; transform: scale(1.12); }
+
+  /* Панель вчителя */
+  .seg { display:flex; gap: 6px; background: rgba(0,0,0,.25); border: 1px solid var(--line); border-radius: 16px; padding: 5px; margin-bottom: 12px; }
+  .seg-b { flex: 1; font-family: var(--display); font-weight: 700; font-size: .85rem; color: var(--muted); background: transparent; border: 0; border-radius: 12px; padding: 10px 6px; cursor:pointer; min-height: 44px; }
+  .seg-b.on { background: var(--accent); color: var(--accent-ink); }
+  .stats { display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-bottom: 12px; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px; }
+  .stat b { display:block; font-family: var(--display); font-size: 1.5rem; }
+  .stat span { color: var(--muted); font-size: .85rem; font-weight: 700; }
+  .stat.bad { border-color: var(--red); background: rgba(255,111,138,.14); }
+  .stat.warnc { border-color: var(--yellow); background: rgba(255,216,74,.1); }
+  .live { display:grid; gap: 8px; }
+  .live-row { display:grid; grid-template-columns: auto minmax(0, 1.4fr) minmax(0, 1fr) auto auto; gap: 12px; align-items:center; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px; }
+  .live-row.out { border-color: var(--red); background: rgba(255,111,138,.14); }
+  .live-row.fin { border-color: rgba(88,227,154,.6); }
+  .live-n { min-width: 0; } .live-n b { display:block; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .live-n small { color: var(--muted); font-weight: 600; } .live-n small.red { color: var(--red); font-weight: 800; }
+  .live-p { display:flex; align-items:center; gap: 8px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .pbar { flex: 1; height: 10px; border-radius: 6px; background: rgba(0,0,0,.35); overflow:hidden; }
+  .pbar i { display:block; height: 100%; background: linear-gradient(90deg, var(--cyan), var(--green)); border-radius: 6px; transition: width .6s; }
+  .live-l { text-align:center; min-width: 64px; } .live-l b { display:block; font-family: var(--display); }
+  .live-l small { color: var(--muted); font-size: .72rem; }
+  .live-l.has b { color: var(--yellow); }
+  .live-t { color: var(--muted); font-size: .8rem; white-space: nowrap; } .live-t.stale { color: var(--orange); }
+  @media (max-width: 560px) {
+    .live-row { grid-template-columns: auto minmax(0, 1fr) auto; }
+    .live-p { grid-column: 2 / 4; grid-row: 2; } .live-t { grid-column: 3; grid-row: 1; }
+    .live-l { grid-column: 1; grid-row: 2; min-width: 0; }
+  }
+
+  /* Екран для телевізора */
+  body.tvmode main { max-width: none; padding: 2vw 3vw; }
+  .tv { min-height: 92vh; display:flex; flex-direction: column; gap: 2vw; }
+  .tv-head { display:grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 2vw; align-items:end; }
+  .tv-title small { display:block; color: var(--muted); font-size: clamp(14px, 1.4vw, 28px); font-weight: 700; }
+  .tv-title b { font-family: var(--display); font-size: clamp(32px, 4.4vw, 96px); line-height: 1; }
+  .tv-sum { background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 1.2vw 1.6vw; }
+  .tv-big { font-family: var(--display); font-weight: 800; font-size: clamp(30px, 3.6vw, 80px); line-height: 1; background: linear-gradient(90deg, var(--cyan), var(--yellow)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .tv-sum span { color: var(--muted); font-weight: 700; font-size: clamp(13px, 1.2vw, 24px); }
+  .tv-classbar { grid-column: 1 / -1; height: clamp(12px, 1.2vw, 24px); border-radius: 999px; background: rgba(0,0,0,.35); overflow:hidden; border: 1px solid var(--line); }
+  .tv-classbar i { display:block; height: 100%; background: linear-gradient(90deg, var(--cyan), var(--pink), var(--yellow)); transition: width .8s; }
+  .tv-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(clamp(240px, 22vw, 420px), 1fr)); gap: 1.2vw; align-content: start; flex: 1; }
+  .tv-card { background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 1vw 1.2vw; display:grid; gap: .6vw; }
+  .tv-card.fin { border-color: var(--yellow); background: rgba(255,216,74,.12); box-shadow: 0 0 30px rgba(255,216,74,.18); }
+  .tv-name { display:flex; align-items:center; gap: .8vw; }
+  .tv-name b { flex: 1; font-size: clamp(16px, 1.5vw, 34px); line-height: 1.15; }
+  .tv-name > span:last-child { font-family: var(--display); font-weight: 800; font-size: clamp(16px, 1.6vw, 36px); font-variant-numeric: tabular-nums; }
+  .ava.tvsize { width: clamp(36px, 3.2vw, 72px); height: clamp(36px, 3.2vw, 72px); border-radius: 30%; }
+  .tv-bar { height: clamp(10px, .9vw, 20px); border-radius: 999px; background: rgba(0,0,0,.35); overflow:hidden; }
+  .tv-bar i { display:block; height: 100%; background: linear-gradient(90deg, var(--cyan), var(--green)); border-radius: 999px; transition: width .8s; }
+  .tv-card.fin .tv-bar i { background: linear-gradient(90deg, var(--yellow), var(--orange)); }
+  .tv-card small { color: var(--muted); font-weight: 700; font-size: clamp(12px, 1vw, 22px); }
+  .tv-empty { grid-column: 1 / -1; text-align:center; color: var(--muted); font-size: clamp(18px, 2vw, 40px); padding: 6vw 0; }
+  .tv-foot { display:flex; gap: 8px; align-items:center; justify-content:flex-end; opacity: .45; }
+  .tv-foot:hover { opacity: 1; }
+  .tv-clock { margin-right: auto; font-family: var(--display); font-size: clamp(14px, 1.4vw, 28px); }
+  .tv-cls { font: inherit; font-weight: 800; background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 6px 12px; cursor:pointer; }
+  .tv-cls.on { background: var(--accent); color: var(--accent-ink); }
+  @media (max-width: 700px) { .tv-head { grid-template-columns: 1fr 1fr; } .tv-title { grid-column: 1 / -1; } }
   @media (max-width: 420px) { body { font-size: 16.5px; } .slide { flex-basis: 90%; } .grade { font-size: 3.8rem; } .tabs .btn { font-size: .85rem; } .lv b { font-size: .92rem; } .lv .stars { font-size: 1rem; } }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
@@ -351,6 +429,14 @@ var ICONS = {
   bolt: '<polygon points="36,5 15,36 30,36 26,59 49,26 34,26" fill="currentColor"/>',
   shield: '<path d="M32 6l20 8v18c0 14-10 22-20 26C22 54 12 46 12 32V14z"/><path d="M22 32l8 8 14-16"/>',
   puzzle: '<path d="M10 20h14a6 6 0 1 1 12 0h14v14a6 6 0 1 0 0 12v10H36a6 6 0 1 0-12 0H10V46a6 6 0 1 0 0-12z"/>',
+  robot: '<rect x="13" y="20" width="38" height="30" rx="9"/><circle cx="25" cy="34" r="4"/><circle cx="39" cy="34" r="4"/><path d="M32 20v-7M26 44h12M7 31v8M57 31v8"/><circle cx="32" cy="10" r="3"/>',
+  rocket: '<path d="M32 5c10 8 14 21 10 35H22C18 26 22 13 32 5z"/><circle cx="32" cy="23" r="5"/><path d="M22 38l-8 11 10-2M42 38l8 11-10-2M28 45l4 11 4-11"/>',
+  gamepad: '<path d="M17 21h30a11 11 0 0 1 11 11v5a8 8 0 0 1-14 5l-4-5H24l-4 5a8 8 0 0 1-14-5v-5a11 11 0 0 1 11-11z"/><path d="M20 29v9M15.5 33.5h9"/><circle cx="42" cy="30" r="2.5" fill="currentColor"/><circle cx="48" cy="36" r="2.5" fill="currentColor"/>',
+  wifi: '<path d="M7 25a35 35 0 0 1 50 0M15 34a23 23 0 0 1 34 0M23 43a11 11 0 0 1 18 0"/><circle cx="32" cy="51" r="3.5" fill="currentColor"/>',
+  mouse: '<rect x="17" y="7" width="30" height="50" rx="15"/><path d="M32 7v17M17 26h30"/>',
+  code: '<path d="M21 17L7 32l14 15M43 17l14 15-14 15M37 11l-10 42"/>',
+  satellite: '<rect x="24" y="24" width="16" height="16" rx="2" transform="rotate(45 32 32)"/><path d="M15 15l7 7M42 42l7 7M8 22l14-14M42 56l14-14M45 10a9 9 0 0 1 9 9M47 3a15 15 0 0 1 14 14"/>',
+  cloud: '<path d="M18 47h30a11 11 0 0 0 0-22 15 15 0 0 0-28-4A12 12 0 0 0 18 47z"/>',
   atom: '<circle cx="32" cy="32" r="4" fill="currentColor"/><ellipse cx="32" cy="32" rx="26" ry="10"/><ellipse cx="32" cy="32" rx="26" ry="10" transform="rotate(60 32 32)"/><ellipse cx="32" cy="32" rx="26" ry="10" transform="rotate(-60 32 32)"/>',
   clock: '<circle cx="32" cy="35" r="21"/><path d="M32 23v12l8 6M25 6h14M32 6v8"/>',
   wave: '<path d="M4 30c7-16 11-16 16 0s9 16 16 0 9-16 16 0 6 10 8 6"/><path d="M8 50h48" stroke-dasharray="3 7"/>',
@@ -362,6 +448,31 @@ function ico(name, size, color) {
   var e = h('span', { class: 'ico ' + (size || ''), html: '<svg viewBox="0 0 64 64" ' + S + ' aria-hidden="true">' + (ICONS[name] || ICONS.globe) + '</svg>' });
   if (color) e.style.setProperty('--c', color);
   return e;
+}
+
+/* ===== Аватарки агентів ===== */
+var AV_ICONS = ['robot', 'rocket', 'cpu', 'wifi', 'gamepad', 'mouse', 'code', 'satellite', 'globe', 'cloud', 'shield', 'atom'];
+var AV_COLORS = ['#22d3ee', '#f472b6', '#fde047', '#4ade80', '#a78bfa', '#fb923c', '#38bdf8', '#fb7185'];
+function avParse(av) { var m = /^([a-z]+)\.(\d)$/.exec(av || ''); return m && AV_ICONS.indexOf(m[1]) >= 0 ? { i: m[1], c: Number(m[2]) % AV_COLORS.length } : null; }
+function avRandom() { return AV_ICONS[Math.floor(Math.random() * AV_ICONS.length)] + '.' + Math.floor(Math.random() * AV_COLORS.length); }
+function avatar(av, size) {
+  var p = avParse(av), e = h('span', { class: 'ava' + (size ? ' ' + size : ''), 'aria-hidden': 'true' }, [p ? ico(p.i) : h('span', { class: 'ava-q', text: '?' })]);
+  e.style.setProperty('--avc', p ? AV_COLORS[p.c] : 'rgba(255,255,255,.18)');
+  return e;
+}
+/* Конструктор аватарки: обери символ і колір */
+function avatarPicker(cur, onChange) {
+  var p = avParse(cur) || avParse(avRandom()), wrap = h('div', { class: 'avp' });
+  function draw() {
+    var v = p.i + '.' + p.c; onChange(v); wrap.innerHTML = '';
+    wrap.appendChild(h('div', { class: 'avp-prev' }, [avatar(v, 'xl'), h('small', { class: 'muted', text: 'Твоя аватарка' })]));
+    var right = h('div', { class: 'avp-opts' });
+    right.appendChild(h('div', { class: 'avp-icons' }, AV_ICONS.map(function (i) { return h('button', { class: 'avp-i' + (p.i === i ? ' on' : ''), 'aria-label': 'Символ ' + i, 'aria-pressed': p.i === i ? 'true' : 'false', onclick: function () { p.i = i; draw(); } }, [ico(i)]); })));
+    right.appendChild(h('div', { class: 'avp-colors' }, AV_COLORS.map(function (c, k) { var b = h('button', { class: 'avp-c' + (p.c === k ? ' on' : ''), 'aria-label': 'Колір ' + (k + 1), 'aria-pressed': p.c === k ? 'true' : 'false', onclick: function () { p.c = k; draw(); } }); b.style.background = c; return b; })));
+    wrap.appendChild(right);
+  }
+  draw();
+  return wrap;
 }
 
 /* ===== Талісман «Біт» ===== */
@@ -403,15 +514,15 @@ function confetti() {
 
 /* ===== Стан ===== */
 var DATA_VERSION = '3';
-if (store('imi_ver') !== DATA_VERSION) { try { ['imi_state', 'imi_prog', 'imi_review'].forEach(function (k) { localStorage.removeItem(k); }); } catch (e) {} store('imi_ver', DATA_VERSION); }
-var state = { first: store('imi_first') || '', last: store('imi_last') || '', cls: store('imi_cls') || '', stars: {}, scores: {} };
+if (store('imi_ver') !== DATA_VERSION) { try { ['imi_state', 'imi_prog', 'imi_review', 'imi_watch'].forEach(function (k) { localStorage.removeItem(k); }); } catch (e) {} store('imi_ver', DATA_VERSION); }
+var state = { first: store('imi_first') || '', last: store('imi_last') || '', cls: store('imi_cls') || '', av: store('imi_av') || '', stars: {}, scores: {} };
 try { var saved = JSON.parse(store('imi_state') || '{}'); if (saved && saved.stars) { state.stars = saved.stars; state.scores = saved.scores || {}; } } catch (e) {}
 function getProg(id) { try { var o = JSON.parse(store('imi_prog') || '{}'); return o[id] || null; } catch (e) { return null; } }
 function setProg(id, v) { try { var o = JSON.parse(store('imi_prog') || '{}'); if (v == null) delete o[id]; else o[id] = v; store('imi_prog', JSON.stringify(o)); } catch (e) {} }
 function saveReview(id, rows) { try { var o = JSON.parse(store('imi_review') || '{}'); o[id] = rows; store('imi_review', JSON.stringify(o)); } catch (e) {} }
 function getReview() { try { return JSON.parse(store('imi_review') || '{}'); } catch (e) { return {}; } }
-function saveState() { store('imi_state', JSON.stringify({ stars: state.stars, scores: state.scores })); store('imi_first', state.first); store('imi_last', state.last); store('imi_cls', state.cls); }
-function displayName() { var l = state.last.trim(); return (state.first.trim() + (l ? ' ' + l[0] + '.' : '')).trim(); }
+function saveState() { store('imi_state', JSON.stringify({ stars: state.stars, scores: state.scores })); store('imi_first', state.first); store('imi_last', state.last); store('imi_cls', state.cls); store('imi_av', state.av || ''); }
+function displayName() { return (state.first.trim() + ' ' + state.last.trim()).trim(); }
 function profileOk() { return state.first.trim() && state.last.trim() && CLASSES.indexOf(state.cls) >= 0; }
 var app = $('#app');
 function render(nodes) { app.innerHTML = ''; nodes.forEach(function (n) { if (n) app.appendChild(n); }); window.scrollTo(0, 0); }
@@ -427,7 +538,7 @@ function rankFor(p) { return p >= 0.9 ? 'Кіберкапітан' : p >= 0.7 ? 
 function apiEnabled() { return API_URL.indexOf('https://') === 0; }
 function qs(o) { return Object.keys(o).map(function (k) { return k + '=' + encodeURIComponent(o[k]); }).join('&'); }
 function apiGet(o) { return fetch(API_URL + (API_URL.indexOf('?') >= 0 ? '&' : '?') + qs(o)).then(function (r) { return r.json(); }); }
-function apiPost(o) { return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(o) }).then(function (r) { return r.json(); }); }
+function apiPost(o, keep) { return fetch(API_URL, { method: 'POST', keepalive: !!keep, headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(o) }).then(function (r) { return r.json(); }); }
 function apiSubmit(o) {
   o.action = 'submit';
   return apiPost(o).catch(function () {
@@ -501,22 +612,23 @@ function showWelcome(msg) {
   var first = h('input', { type: 'text', placeholder: 'Ім\'я', maxlength: '30', value: state.first, autocomplete: 'given-name', 'aria-label': 'Ім\'я' });
   var last = h('input', { type: 'text', placeholder: 'Прізвище', maxlength: '30', value: state.last, autocomplete: 'family-name', 'aria-label': 'Прізвище' });
   var cls = h('select', { 'aria-label': 'Клас' }, [h('option', { value: '', text: 'Обери клас' })].concat(CLASSES.map(function (c) { return h('option', { value: c, text: c, selected: state.cls === c ? 'selected' : null }); })));
-  var err = h('div', { class: 'fb bad', 'aria-live': 'polite' });
+  var err = h('div', { class: 'fb bad', 'aria-live': 'polite' }), avSel = state.av || avRandom();
+  var picker = avatarPicker(avSel, function (v) { avSel = v; });
   function go() {
     if (!first.value.trim() || !last.value.trim() || !cls.value) { err.textContent = 'Заповни ім\'я, прізвище та обери клас, щоб почати місію.'; toast('Заповни ім\'я, прізвище та обери клас.', 'bad'); return; }
-    state.first = first.value.trim(); state.last = last.value.trim(); state.cls = cls.value; saveState(); sstore('imi_started', '1'); showMenu(); toast('Місію розпочато! Успіху, агенте ' + state.first + '!', 'ok');
+    state.first = first.value.trim(); state.last = last.value.trim(); state.cls = cls.value; state.av = avSel; saveState(); sstore('imi_started', '1'); showMenu(); toast('Місію розпочато! Успіху, агенте ' + state.first + '!', 'ok'); sendProgress();
   }
   var tips = [['Що це?', 'Контрольна робота з інформатики за § 1–5 підручника: сучасні технології, будова комп\'ютера, інформаційні системи, сигнали й мережі, пошук і перевірка інформації. Це гра з ' + LEVELS.length + ' рівнів, розрахована на один урок. Не поспішай і уважно читай завдання.'],
-    ['Правила', 'Кожен рівень проходиться лише один раз, повернутися або перепройти його не можна. Якщо браузер закриється або зникне інтернет, відкрий сторінку знову: гра продовжиться з місця зупинки, а зроблені помилки збережуться. Підказок немає, працюй самостійно.'],
-    ['Оцінка', 'Коли пройдеш усі рівні, одразу побачиш свою оцінку за 12-бальною шкалою. Результат автоматично потрапить до вчителя й до таблиці лідерів твого класу (там видно лише ім\'я та першу літеру прізвища).'],
-    ['Перед стартом', 'Уважно впиши своє ім\'я та прізвище й обери свій клас. Після початку першого рівня змінити їх не можна.']];
+    ['Правила', 'Кожен рівень проходиться лише один раз, повернутися або перепройти його не можна. Якщо браузер закриється або зникне інтернет, відкрий сторінку знову: гра продовжиться з місця зупинки, а зроблені помилки збережуться. Підказок немає, працюй самостійно. Не виходь зі сторінки: перехід в іншу вкладку чи застосунок фіксується, і вчитель це бачить.'],
+    ['Оцінка', 'Коли пройдеш усі рівні, одразу побачиш свою оцінку за 12-бальною шкалою. Результат автоматично потрапить до вчителя й до таблиці лідерів твого класу (там видно твоє ім\'я, прізвище й аватарку).'],
+    ['Перед стартом', 'Уважно впиши своє ім\'я та прізвище, обери клас і збери собі аватарку. Після початку першого рівня змінити їх не можна.']];
   render([
     h('h1', { text: 'Контрольна робота: місія «Врятувати Інтернет»' }),
     h('div', { html: HERO }),
     mascot('Привіт! Я Біт. Зловмисники зламали частину Інтернету, і тільки ти можеш його врятувати. Покажи, що знаєш матеріал!', 'wow'),
     h('div', { class: 'card' }, tips.map(function (t) { return h('div', { style: 'margin-bottom:10px' }, [h('b', { text: t[0] }), h('p', { class: 'muted', style: 'margin:2px 0 0', text: t[1] })]); })),
     msg ? h('div', { class: 'warn', text: msg }) : null,
-    h('div', { class: 'card' }, [h('b', { text: 'Досьє агента' }), h('div', { class: 'row', style: 'margin-top:8px' }, [first, last, cls]), err,
+    h('div', { class: 'card' }, [h('b', { text: 'Досьє агента' }), h('div', { class: 'row', style: 'margin-top:8px' }, [first, last, cls]), h('b', { style: 'display:block;margin-top:14px', text: 'Збери аватарку' }), picker, err,
       h('button', { class: 'btn big', style: 'margin-top:6px', text: 'Почати місію', onclick: go })]),
     h('footer', {}, [h('div', { class: 'credit', text: 'Гру створив учитель інформатики Вовненко Ярослав Віталійович' }), h('div', { style: 'margin-top:6px' }, [h('a', { href: '#admin', text: 'Для вчителя' })])])
   ]);
@@ -543,7 +655,7 @@ function showMenu(msg) {
     h('div', { html: HERO }),
     mascot(hi + 'Проходь рівні по черзі. Кожен можна пройти лише раз, тож зосередься!', 'happy'),
     msg ? h('div', { class: 'warn', text: msg }) : null,
-    h('div', { class: 'card row', style: 'justify-content:space-between' }, [h('span', {}, [h('b', { text: 'Агент: ' + displayName() }), h('span', { class: 'muted', text: ' · ' + state.cls })]), (t.done === 0 && !LEVELS.some(function (x) { return getProg(x.id); }) ? h('button', { class: 'btn alt', style: 'min-height:40px;padding:6px 14px', text: 'Змінити', onclick: showWelcome }) : null)]),
+    h('div', { class: 'card row', style: 'justify-content:space-between' }, [h('span', { class: 'row', style: 'flex-wrap:nowrap;gap:12px' }, [avatar(state.av), h('span', {}, [h('b', { text: displayName() }), h('span', { class: 'muted', text: ', ' + state.cls })])]), (t.done === 0 && !LEVELS.some(function (x) { return getProg(x.id); }) ? h('button', { class: 'btn alt', style: 'min-height:40px;padding:6px 14px', text: 'Змінити', onclick: showWelcome }) : null)]),
     SHOW_MATERIALS ? h('h2', { text: 'Секретні матеріали' }) : null,
     SHOW_MATERIALS ? carousel() : null,
     h('h2', { text: 'Місія' }),
@@ -565,11 +677,13 @@ function startLevel(l) {
   if (state.scores[l.id] != null) { showMenu('Цей рівень уже пройдено, повторно проходити його не можна.'); return; }
   stopTimers(); stopConfetti(); CUR = l;
   if (getProg(l.id)) toast('Продовжуємо рівень з місця зупинки. Твої відповіді збережено.', 'info');
+  sendProgress();
   l.run(function (score) { finishLevel(l, score); });
 }
 
 function finishLevel(l, score) {
   setProg(l.id, null);
+  setTimeout(sendProgress, 0);
   var st = starsFor(score, l.max);
   state.scores[l.id] = score;
   state.stars[l.id] = st;
@@ -635,7 +749,7 @@ function showSummary() {
   var status = h('div', { class: 'fb', 'aria-live': 'polite' }), boardBox = h('div');
   if (grade >= 9) confetti();
   render([
-    h('div', { class: 'card gradebox' }, [h('p', { class: 'muted', text: 'Агент ' + displayName() + ' · ' + state.cls }), h('div', { class: 'grade', text: grade + ' / 12' }), h('div', { class: 'rank', text: rank }), h('p', { text: 'Разом: ' + t.sum + ' з ' + t.max + ' (' + Math.round(pct * 100) + '%)' })]),
+    h('div', { class: 'card gradebox' }, [avatar(state.av, 'xl'), h('p', { class: 'muted', style: 'margin-top:8px', text: 'Агент ' + displayName() + ', ' + state.cls }), h('div', { class: 'grade', text: grade + ' / 12' }), h('div', { class: 'rank', text: rank }), h('p', { text: 'Разом: ' + t.sum + ' з ' + t.max + ' (' + Math.round(pct * 100) + '%)' })]),
     mascot(grade >= 10 ? 'Неймовірно! Інтернет врятовано, а ти — герой!' : grade >= 7 ? 'Круто! Місію виконано, ти молодець!' : 'Місію завершено. Повтори матеріал підручника, і наступного разу вийде краще!', grade >= 7 ? 'wow' : 'happy'),
     h('div', { class: 'card' }, rows), status, h('div', { class: 'grid' }, [h('button', { class: 'btn big', text: 'До меню', onclick: function () { showMenu(); } }), h('button', { class: 'btn alt big', text: 'Таблиця лідерів', onclick: function () { showBoard(state.cls); } })]), h('div', { style: 'height:12px' }), boardBox
   ]);
@@ -646,7 +760,7 @@ function showSummary() {
   function fail(txt) { status.className = 'fb bad'; status.textContent = txt + ' Твій результат збережено на цьому пристрої: перевір інтернет і натисни «Надіслати ще раз».'; retry.style.display = 'block'; toast('Результат не надіслано. Перевір інтернет і натисни «Надіслати ще раз».', 'bad'); }
   function send() {
     status.className = 'fb'; status.textContent = 'Надсилаю результат вчителю…'; retry.style.display = 'none';
-    apiSubmit({ first: state.first.trim(), last: state.last.trim(), cls: state.cls, score: t.sum, max: t.max, grade: grade, stars: starSum, details: details })
+    apiSubmit({ first: state.first.trim(), last: state.last.trim(), cls: state.cls, score: t.sum, max: t.max, grade: grade, stars: starSum, details: details, leaves: W.leaves, away: Math.round(W.away / 1000), av: state.av })
       .then(function (r) {
         if (r && r.ok) { status.className = 'fb ok'; status.textContent = r.unconfirmed ? 'Результат надіслано (підтвердження не отримано).' : 'Результат надіслано вчителю!'; toast(r.duplicate ? 'Результат уже був у вчителя, зараховано перший.' : 'Результат надіслано вчителю!', 'ok'); return loadBoard(boardBox, state.cls, true); }
         fail('Не вдалося надіслати: ' + ((r && r.error) || 'невідома помилка') + '.');
@@ -658,12 +772,12 @@ function showSummary() {
 function loadBoard(box, cls, mine) {
   box.innerHTML = ''; box.appendChild(h('div', { class: 'muted', text: 'Завантажую таблицю лідерів…' }));
   var akey = sstore('imi_key'), full = false;
-  var first = akey ? apiGet({ action: 'list', 'class': cls, key: akey }).then(function (r) { if (r && r.rows) { full = true; r.rows = r.rows.map(function (x) { return { n: x.last + ' ' + x.first, g: x.g, s: x.s, st: x.st }; }); return r; } return apiGet({ action: 'board', 'class': cls }); }) : apiGet({ action: 'board', 'class': cls });
+  var first = akey ? apiGet({ action: 'list', 'class': cls, key: akey }).then(function (r) { if (r && r.rows) { full = true; r.rows = r.rows.map(function (x) { return { n: x.first + ' ' + x.last, av: x.av, g: x.g, s: x.s, st: x.st }; }); return r; } return apiGet({ action: 'board', 'class': cls }); }) : apiGet({ action: 'board', 'class': cls });
   return first.then(function (res) {
     var list = (res && res.rows) || []; box.innerHTML = '';
     var me = displayName(), body = h('tbody'), medals = ['1', '2', '3'];
-    list.forEach(function (r, i) { body.appendChild(h('tr', { class: mine && !full && r.n === me ? 'me' : null }, [h('td', { class: 'medal', text: String(i + 1) }), h('td', { text: r.n }), h('td', { text: r.g + ' / 12' }), h('td', { text: String(r.s) })])); });
-    box.appendChild(h('div', { class: 'card' }, [h('h3', { text: 'Лідери ' + cls + (full ? ' (повні імена, режим вчителя)' : '') }), list.length ? h('table', { class: 'tbl' }, [h('thead', {}, [h('tr', {}, [h('th', { text: '№' }), h('th', { text: 'Агент' }), h('th', { text: 'Оцінка' }), h('th', { text: 'Бали' })])]), body]) : h('p', { class: 'muted', text: 'Поки що нікого немає. Ти можеш стати першим!' })]));
+    list.forEach(function (r, i) { body.appendChild(h('tr', { class: mine && !full && r.n === me ? 'me' : null }, [h('td', { class: 'medal', text: String(i + 1) }), h('td', {}, [h('span', { class: 'who' }, [avatar(r.av, 'sm'), h('span', { text: r.n })])]), h('td', { text: r.g + ' / 12' }), h('td', { text: String(r.s) })])); });
+    box.appendChild(h('div', { class: 'card' }, [h('h3', { text: 'Лідери ' + cls }), list.length ? h('table', { class: 'tbl' }, [h('thead', {}, [h('tr', {}, [h('th', { text: '№' }), h('th', { text: 'Агент' }), h('th', { text: 'Оцінка' }), h('th', { text: 'Бали' })])]), body]) : h('p', { class: 'muted', text: 'Поки що нікого немає. Ти можеш стати першим!' })]));
   }).catch(function () { box.innerHTML = ''; box.appendChild(h('div', { class: 'warn', text: 'Не вдалося завантажити таблицю лідерів.' })); });
 }
 function classTabs(cls, fn) { return h('div', { class: 'tabs' }, CLASSES.map(function (c) { return h('button', { class: 'btn alt' + (c === cls ? ' on' : ''), text: c, onclick: function () { fn(c); } }); })); }
@@ -674,70 +788,190 @@ function showBoard(cls) {
   loadBoard(box, cls, true);
 }
 
-/* ===== Панель вчителя (#admin) ===== */
-function showAdmin(cls) {
-  cls = cls || CLASSES[0];
-  var box = h('div');
-  var key = h('input', { type: 'password', placeholder: 'Ключ вчителя', value: sstore('imi_key') || '', autocomplete: 'off', 'aria-label': 'Ключ вчителя' });
-  function errText(e) { return e === 'wrong key' ? 'Неправильний ключ вчителя.' : e === 'bad class' ? 'Невідомий клас.' : 'Помилка: ' + (e || 'немає відповіді') + '.'; }
-  /* Виконує дію вчителя: блокує кнопку, показує toast з результатом */
+/* ===== Прогрес учня й виходи зі сторінки ===== */
+var W = (function () { try { return JSON.parse(store('imi_watch') || '{}') || {}; } catch (e) { return {}; } })();
+W.leaves = W.leaves || 0; W.away = W.away || 0;
+function saveW() { store('imi_watch', JSON.stringify(W)); }
+function watching() { return profileOk() && !!sstore('imi_started') && !totals().all; }
+var confirmAt = 0;
+/* Діалог підтвердження: браузер може вважати його виходом зі сторінки, тому позначаємо час */
+function ask(msg) { confirmAt = Date.now(); try { return window.confirm(msg); } finally { confirmAt = Date.now(); } }
+function fmtDur(ms) { var s = Math.round(ms / 1000), m = Math.floor(s / 60); return m ? m + ' хв ' + (s % 60) + ' с' : s + ' с'; }
+function sendProgress() {
+  if (!apiEnabled() || !profileOk() || !sstore('imi_started')) return;
+  var t = totals(), inLevel = CUR && state.scores[CUR.id] == null;
+  apiPost({ action: 'progress', first: state.first.trim(), last: state.last.trim(), cls: state.cls, done: t.done, total: LEVELS.length,
+    pct: Math.round(t.done / LEVELS.length * 100), now: t.all ? 'Завершив контрольну' : inLevel ? 'Рівень ' + (LEVELS.indexOf(CUR) + 1) + ': ' + CUR.title : 'Меню',
+    leaves: W.leaves, away: Math.round(W.away / 1000), fin: t.all, out: !!W.hiddenAt, av: state.av, ts: Date.now() }, true).catch(function () {});
+}
+var blurTimer = null;
+function markHidden(viaBlur) {
+  if (!watching() || W.hiddenAt || Date.now() - confirmAt < 1500) return;
+  W.hiddenAt = Date.now(); saveW();
+  if (viaBlur) { clearTimeout(blurTimer); blurTimer = setTimeout(function () { if (W.hiddenAt) sendProgress(); }, 2500); } else sendProgress();
+}
+function markBack() {
+  clearTimeout(blurTimer);
+  if (!W.hiddenAt) return;
+  var d = Date.now() - W.hiddenAt; W.hiddenAt = 0;
+  if (d >= 2000 && watching()) { W.leaves++; W.away += d; saveW(); sendProgress(); toast('Ти виходив зі сторінки на ' + fmtDur(d) + '. Учитель це бачить.', 'bad'); }
+  else { saveW(); if (d >= 2000) sendProgress(); }
+}
+document.addEventListener('visibilitychange', function () { if (document.hidden) markHidden(false); else markBack(); });
+window.addEventListener('blur', function () { if (!document.hidden) markHidden(true); });
+window.addEventListener('focus', markBack);
+
+/* ===== Панель вчителя (#admin) з вкладками ===== */
+var adminTimer = null;
+function stopAdminTimer() { if (adminTimer) { clearInterval(adminTimer); adminTimer = null; } }
+function ago(ms) { var s = Math.max(0, Math.round(ms / 1000)); return s < 45 ? 'щойно' : s < 3600 ? Math.round(s / 60) + ' хв тому' : Math.round(s / 3600) + ' год тому'; }
+function adminErr(e) { return e === 'wrong key' ? 'Неправильний ключ вчителя.' : e === 'bad class' ? 'Невідомий клас.' : 'Помилка: ' + (e || 'немає відповіді') + '.'; }
+function showAdmin(cls, tab) {
+  stopAdminTimer();
+  cls = cls || sstore('imi_acls') || CLASSES[0]; tab = tab || sstore('imi_atab') || 'live';
+  sstore('imi_acls', cls); sstore('imi_atab', tab);
+  var box = h('div'), key = h('input', { type: 'password', placeholder: 'Ключ вчителя', value: sstore('imi_key') || '', autocomplete: 'off', 'aria-label': 'Ключ вчителя' });
+  function k() { return key.value; }
   function act(btn, req, okText, after) {
     if (!apiEnabled()) { toast('Таблиця не підключена (немає API_URL).', 'bad'); return; }
     if (btn) btn.disabled = true;
     req().then(function (x) {
       if (btn) btn.disabled = false;
-      if (x && x.ok) { if (okText) toast(okText, 'ok'); if (after) after(); } else toast(errText(x && x.error), 'bad');
+      if (x && x.ok) { if (okText) toast(okText, 'ok'); if (after) after(); } else toast(adminErr(x && x.error), 'bad');
     }).catch(function () { if (btn) btn.disabled = false; toast('Немає зв\'язку з таблицею. Перевір інтернет.', 'bad'); });
   }
-  function load(silent) {
-    sstore('imi_key', key.value);
-    if (!apiEnabled()) { toast('Таблиця не підключена (немає API_URL).', 'bad'); return; }
-    box.innerHTML = ''; box.appendChild(h('div', { class: 'muted', text: 'Завантажую результати…' }));
-    apiGet({ action: 'list', 'class': cls, key: key.value }).then(function (res) {
-      box.innerHTML = '';
-      if (!res || res.error) { toast(errText(res && res.error), 'bad'); return; }
-      var rows = res.rows || [], body = h('tbody');
-      if (!silent) toast(cls + ': завантажено результатів — ' + rows.length + '.', 'info');
-      rows.forEach(function (r) {
-        var del = h('button', { class: 'btn bad', style: 'min-height:40px;padding:6px 12px', text: 'Видалити', onclick: function () {
-          if (!confirm('Видалити результат: ' + r.last + ' ' + r.first + '?')) return;
-          act(del, function () { return apiPost({ action: 'delete', key: key.value, cls: cls, first: r.first, last: r.last }); }, 'Результат «' + r.last + ' ' + r.first + '» видалено.', function () { load(true); });
-        } });
-        body.appendChild(h('tr', {}, [h('td', { text: r.last + ' ' + r.first }), h('td', { text: r.g + ' / 12' }), h('td', { text: r.s + (r.m ? ' з ' + r.m : '') }), h('td', {}, [del])]));
-      });
-      var clearBtn = rows.length ? h('button', { class: 'btn bad', style: 'margin-top:12px', text: 'Видалити весь клас ' + cls, onclick: function () {
-        if (!confirm('Видалити ВСІ результати класу ' + cls + '?')) return;
-        act(clearBtn, function () { return apiPost({ action: 'clear', key: key.value, cls: cls }); }, 'Усі результати класу ' + cls + ' видалено.', function () { load(true); });
-      } }) : null;
-      box.appendChild(h('div', { class: 'card' }, [h('h3', { text: cls + ': результатів ' + rows.length }),
-        rows.length ? h('table', { class: 'tbl' }, [h('thead', {}, [h('tr', {}, [h('th', { text: 'Учень' }), h('th', { text: 'Оцінка' }), h('th', { text: 'Бали' }), h('th', { text: '' })])]), body]) : h('p', { class: 'muted', text: 'Результатів поки немає.' }),
-        clearBtn]));
-    }).catch(function () { box.innerHTML = ''; toast('Немає зв\'язку з таблицею. Перевір інтернет.', 'bad'); });
+  function go(c, t) { showAdmin(c, t); }
+  var TABS = [['live', 'Прогрес'], ['results', 'Результати'], ['settings', 'Розбір і налаштування']];
+  var tabs = h('div', { class: 'seg', role: 'tablist' }, TABS.map(function (t) { return h('button', { class: 'seg-b' + (t[0] === tab ? ' on' : ''), role: 'tab', 'aria-selected': t[0] === tab ? 'true' : 'false', text: t[1], onclick: function () { go(cls, t[0]); } }); }));
+  var keyCard = h('div', { class: 'card' }, [h('div', { class: 'row' }, [key, h('button', { class: 'btn', text: 'Увійти', onclick: function () { sstore('imi_key', key.value); toast('Ключ збережено на цей сеанс.', 'ok'); go(cls, tab); } })])]);
+  var parts = [h('div', { class: 'topbar' }, [h('button', { class: 'btn alt', text: '‹ Гра', onclick: function () { stopAdminTimer(); location.hash = ''; route(); } }), h('b', { text: 'Панель вчителя' })]), keyCard, tabs];
+  if (tab !== 'settings') parts.push(classTabs(cls, function (c) { go(c, tab); }));
+  parts.push(box);
+  render(parts);
+
+  if (tab === 'live') {
+    var tvBtn = h('button', { class: 'btn ok', text: 'Показати на телевізорі', onclick: function () { window.open(location.pathname + '#tv=' + encodeURIComponent(cls), '_blank'); } });
+    var refBtn = h('button', { class: 'btn alt', text: 'Оновити', onclick: function () { loadLive(true); } });
+    var stamp = h('span', { class: 'muted' }), list = h('div');
+    box.appendChild(h('div', { class: 'card' }, [h('div', { class: 'row', style: 'justify-content:space-between' }, [h('div', {}, [h('b', { text: 'Прогрес ' + cls + ' зараз' }), h('div', {}, [stamp])]), h('div', { class: 'row' }, [refBtn, tvBtn])]),
+      h('p', { class: 'muted', style: 'margin:8px 0 0', text: 'Список оновлюється сам кожні 15 секунд. Виходи зі сторінки бачиш лише ти, на телевізорі їх немає.' })]));
+    box.appendChild(list);
+    var loadLive = function (manual) {
+      if (!apiEnabled()) { list.innerHTML = ''; list.appendChild(h('div', { class: 'warn', text: 'Таблиця не підключена (немає API_URL).' })); return; }
+      if (!document.body.contains(list)) { stopAdminTimer(); return; }
+      apiGet({ action: 'live', 'class': cls, key: k() }).then(function (res) {
+        if (!res || res.error) { toast(adminErr(res && res.error), 'bad'); stopAdminTimer(); return; }
+        stamp.textContent = 'Оновлено о ' + new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        list.innerHTML = '';
+        var rows = res.rows || [];
+        if (!rows.length) { list.appendChild(h('div', { class: 'card muted', text: 'Ще ніхто з ' + cls + ' не почав контрольну.' })); return; }
+        var fin = rows.filter(function (r) { return r.fin; }).length, out = rows.filter(function (r) { return r.out && !r.fin; }).length, lv = rows.filter(function (r) { return r.leaves > 0; }).length;
+        list.appendChild(h('div', { class: 'stats' }, [stat(rows.length, 'почали'), stat(fin, 'завершили'), stat(out, 'зараз поза сторінкою', out ? 'bad' : ''), stat(lv, 'виходили зі сторінки', lv ? 'warnc' : '')]));
+        var tb = h('div', { class: 'live' });
+        rows.forEach(function (r) {
+          var stale = !r.fin && res.now - r.t > 3 * 60 * 1000;
+          tb.appendChild(h('div', { class: 'live-row' + (r.out && !r.fin ? ' out' : '') + (r.fin ? ' fin' : '') }, [
+            avatar(r.av), h('div', { class: 'live-n' }, [h('b', { text: r.last + ' ' + r.first }), h('small', { class: r.out && !r.fin ? 'red' : '', text: r.fin ? 'Завершив контрольну' : r.out ? 'Зараз поза сторінкою!' : r.now })]),
+            h('div', { class: 'live-p' }, [h('div', { class: 'pbar' }, [h('i', { style: 'width:' + r.pct + '%' })]), h('span', { text: r.pct + '%' })]),
+            h('div', { class: 'live-l' + (r.leaves ? ' has' : ''), title: 'Виходи зі сторінки' }, [h('b', { text: String(r.leaves) }), h('small', { text: r.leaves ? 'виходів, ' + fmtDur(r.away * 1000) : 'виходів' })]),
+            h('div', { class: 'live-t' + (stale ? ' stale' : ''), text: ago(res.now - r.t) })]));
+        });
+        list.appendChild(tb);
+        if (manual) toast('Прогрес оновлено.', 'info');
+      }).catch(function () { if (manual) toast('Немає зв\'язку з таблицею.', 'bad'); });
+    };
+    loadLive(false);
+    adminTimer = setInterval(function () { loadLive(false); }, 15000);
   }
-  var showBtn = h('button', { class: 'btn', text: 'Показати', onclick: function () { load(false); } });
-  var openBtn = h('button', { class: 'btn ok', text: 'Відкрити розбір', onclick: function () { setReview(true, openBtn); } });
-  var closeBtn = h('button', { class: 'btn alt', text: 'Закрити розбір', onclick: function () { setReview(false, closeBtn); } });
-  render([h('div', { class: 'topbar' }, [h('button', { class: 'btn alt', text: '‹ Гра', onclick: function () { location.hash = ''; showMenu(); } }), h('b', { text: 'Панель вчителя' })]),
-    h('div', { class: 'card' }, [h('div', { class: 'row' }, [key, showBtn]),
-      h('p', { class: 'muted', style: 'margin-top:8px', text: 'Тут тільки вчитель бачить прізвища повністю й може видаляти результати.' })]),
-    h('div', { class: 'card' }, [h('b', { text: 'Розбір помилок для учнів' }), h('p', { class: 'muted', id: 'revstat', text: 'Статус: перевіряю…' }),
-      h('div', { class: 'row' }, [openBtn, closeBtn])]),
-    classTabs(cls, function (c) { showAdmin(c); }), box,
-    h('div', { class: 'card' }, [h('b', { text: 'На цьому пристрої' }), h('p', { class: 'muted', text: 'Щоб заново пройти гру під час тестування, очисти локальні результати.' }),
+
+  if (tab === 'results') {
+    var loadRes = function (silent) {
+      if (!apiEnabled()) { toast('Таблиця не підключена (немає API_URL).', 'bad'); return; }
+      box.innerHTML = ''; box.appendChild(h('div', { class: 'muted', text: 'Завантажую результати…' }));
+      apiGet({ action: 'list', 'class': cls, key: k() }).then(function (res) {
+        box.innerHTML = '';
+        if (!res || res.error) { toast(adminErr(res && res.error), 'bad'); return; }
+        var rows = res.rows || [], body = h('tbody');
+        if (!silent) toast(cls + ': завантажено результатів — ' + rows.length + '.', 'info');
+        rows.forEach(function (r) {
+          var del = h('button', { class: 'btn bad', style: 'min-height:40px;padding:6px 12px', text: 'Видалити', onclick: function () {
+            if (!ask('Видалити результат: ' + r.last + ' ' + r.first + '?')) return;
+            act(del, function () { return apiPost({ action: 'delete', key: k(), cls: cls, first: r.first, last: r.last }); }, 'Результат «' + r.last + ' ' + r.first + '» видалено.', function () { loadRes(true); });
+          } });
+          body.appendChild(h('tr', {}, [h('td', {}, [h('span', { class: 'who' }, [avatar(r.av, 'sm'), h('span', { text: r.last + ' ' + r.first })])]), h('td', { text: r.g + ' / 12' }), h('td', { text: r.s + (r.m ? ' з ' + r.m : '') }), h('td', {}, [del])]));
+        });
+        var clearBtn = rows.length ? h('button', { class: 'btn bad', style: 'margin-top:12px', text: 'Видалити весь клас ' + cls, onclick: function () {
+          if (!ask('Видалити ВСІ результати й прогрес класу ' + cls + '?')) return;
+          act(clearBtn, function () { return apiPost({ action: 'clear', key: k(), cls: cls }); }, 'Усі результати класу ' + cls + ' видалено.', function () { loadRes(true); });
+        } }) : null;
+        box.appendChild(h('div', { class: 'card' }, [h('h3', { text: cls + ': результатів ' + rows.length }),
+          rows.length ? h('table', { class: 'tbl' }, [h('thead', {}, [h('tr', {}, [h('th', { text: 'Учень' }), h('th', { text: 'Оцінка' }), h('th', { text: 'Бали' }), h('th', { text: '' })])]), body]) : h('p', { class: 'muted', text: 'Результатів поки немає.' }),
+          clearBtn]));
+      }).catch(function () { box.innerHTML = ''; toast('Немає зв\'язку з таблицею. Перевір інтернет.', 'bad'); });
+    };
+    loadRes(true);
+  }
+
+  if (tab === 'settings') {
+    var revstat = h('p', { class: 'muted', text: 'Статус: перевіряю…' });
+    var revStatus = function () { if (!apiEnabled()) return; apiGet({ action: 'status' }).then(function (r) { revstat.textContent = 'Статус: розбір ' + (r && r.review ? 'ВІДКРИТО для учнів' : 'закрито'); }).catch(function () {}); };
+    var setReview = function (v, btn) { act(btn, function () { return apiPost({ action: 'setreview', key: k(), value: v }); }, v ? 'Розбір помилок відкрито: учні вже можуть його переглянути.' : 'Розбір помилок закрито для учнів.', revStatus); };
+    var openBtn = h('button', { class: 'btn ok', text: 'Відкрити розбір', onclick: function () { setReview(true, openBtn); } });
+    var closeBtn = h('button', { class: 'btn alt', text: 'Закрити розбір', onclick: function () { setReview(false, closeBtn); } });
+    box.appendChild(h('div', { class: 'card' }, [h('b', { text: 'Розбір помилок для учнів' }), revstat, h('div', { class: 'row' }, [openBtn, closeBtn])]));
+    box.appendChild(h('div', { class: 'card' }, [h('b', { text: 'На цьому пристрої' }), h('p', { class: 'muted', text: 'Щоб заново пройти гру під час тестування, очисти локальні результати.' }),
       h('button', { class: 'btn alt', text: 'Очистити локальні результати', onclick: function () {
-        if (!confirm('Очистити результати й прогрес гри на цьому пристрої?')) return;
+        if (!ask('Очистити результати й прогрес гри на цьому пристрої?')) return;
         state.stars = {}; state.scores = {}; saveState();
-        try { localStorage.removeItem('imi_prog'); localStorage.removeItem('imi_review'); sessionStorage.removeItem('imi_started'); } catch (e) {}
+        try { ['imi_prog', 'imi_review', 'imi_watch'].forEach(function (x) { localStorage.removeItem(x); }); sessionStorage.removeItem('imi_started'); } catch (e) {}
+        W = { leaves: 0, away: 0 };
         toast('Результати й прогрес на цьому пристрої очищено.', 'ok');
-      } })])]);
-  function revStatus() { if (!apiEnabled()) return; apiGet({ action: 'status' }).then(function (r) { var e = $('#revstat'); if (e) e.textContent = 'Статус: розбір ' + (r && r.review ? 'ВІДКРИТО для учнів' : 'закрито'); }).catch(function () {}); }
-  function setReview(v, btn) {
-    act(btn, function () { return apiPost({ action: 'setreview', key: key.value, value: v }); }, v ? 'Розбір помилок відкрито: учні вже можуть його переглянути.' : 'Розбір помилок закрито для учнів.', revStatus);
+      } })]));
+    revStatus();
   }
-  revStatus();
-  if (key.value) load(true);
 }
-function route() { if (location.hash === '#admin') showAdmin(); else if (profileOk() && sstore('imi_started')) showMenu(); else showWelcome(); }
+function stat(n, label, cls) { return h('div', { class: 'stat' + (cls ? ' ' + cls : '') }, [h('b', { text: String(n) }), h('span', { text: label })]); }
+
+/* ===== Екран для телевізора (#tv=5-А) ===== */
+function showTV(cls) {
+  stopAdminTimer();
+  if (CLASSES.indexOf(cls) < 0) cls = CLASSES[0];
+  document.body.classList.add('tvmode');
+  var grid = h('div', { class: 'tv-grid' }), head = h('div', { class: 'tv-head' }), clock = h('span', { class: 'tv-clock' });
+  render([h('div', { class: 'tv' }, [head, grid, h('div', { class: 'tv-foot' }, [clock].concat(CLASSES.map(function (c) { return h('button', { class: 'tv-cls' + (c === cls ? ' on' : ''), text: c, onclick: function () { location.hash = 'tv=' + encodeURIComponent(c); } }); })))])]);
+  function load() {
+    if (!document.body.contains(grid)) { stopAdminTimer(); return; }
+    clock.textContent = new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
+    if (!apiEnabled()) { grid.innerHTML = ''; grid.appendChild(h('div', { class: 'tv-empty', text: 'Таблиця не підключена.' })); return; }
+    apiGet({ action: 'tv', 'class': cls }).then(function (res) {
+      var rows = (res && res.rows) || [];
+      var total = rows.reduce(function (s, r) { return s + r.pct; }, 0), avg = rows.length ? Math.round(total / rows.length) : 0, fin = rows.filter(function (r) { return r.fin; }).length;
+      head.innerHTML = '';
+      head.appendChild(h('div', { class: 'tv-title' }, [h('small', { text: 'Місія: Врятувати Інтернет' }), h('b', { text: 'Клас ' + cls })]));
+      head.appendChild(h('div', { class: 'tv-sum' }, [h('div', { class: 'tv-big', text: avg + '%' }), h('span', { text: 'місії виконано класом' })]));
+      head.appendChild(h('div', { class: 'tv-sum' }, [h('div', { class: 'tv-big', text: fin + ' з ' + rows.length }), h('span', { text: 'агентів завершили' })]));
+      head.appendChild(h('div', { class: 'tv-classbar' }, [h('i', { style: 'width:' + avg + '%' })]));
+      grid.innerHTML = '';
+      if (!rows.length) { grid.appendChild(h('div', { class: 'tv-empty', text: 'Чекаємо на агентів… Щойно хтось почне місію, він з\'явиться тут.' })); return; }
+      rows.slice().sort(function (a, b) { return b.pct - a.pct || a.n.localeCompare(b.n, 'uk'); }).forEach(function (r) {
+        grid.appendChild(h('div', { class: 'tv-card' + (r.fin ? ' fin' : '') }, [
+          h('div', { class: 'tv-name' }, [avatar(r.av, 'tvsize'), h('b', { text: r.n }), h('span', { text: r.pct + '%' })]),
+          h('div', { class: 'tv-bar' }, [h('i', { style: 'width:' + r.pct + '%' })]),
+          h('small', { text: r.fin ? 'Місію виконано!' : r.now && r.now.indexOf('Рівень') === 0 ? r.now : 'Готується до наступного рівня' })]));
+      });
+    }).catch(function () {});
+  }
+  load();
+  adminTimer = setInterval(load, 15000);
+}
+
+function route() {
+  stopAdminTimer(); document.body.classList.remove('tvmode');
+  var hs = decodeURIComponent(location.hash || '');
+  if (hs.indexOf('#tv') === 0) showTV(hs.split('=')[1]);
+  else if (hs === '#admin') showAdmin();
+  else if (profileOk() && sstore('imi_started')) showMenu(); else showWelcome();
+}
 window.addEventListener('hashchange', route);
 
 /* =====================================================================
@@ -757,7 +991,7 @@ function textbookFigure(src, alt, caption, cls) {
   return h('figure', { class: 'paper' + (cls ? ' ' + cls : '') }, [h('img', { src: src, alt: alt, loading: 'lazy' }), h('figcaption', { text: caption })]);
 }
 function others(pool, ans, k) { return shuffle(pool.filter(function (x) { return x !== ans; })).slice(0, k); }
-function confirmLock() { return confirm('Підтвердити відповіді? Після цього змінити їх не можна.'); }
+function confirmLock() { return ask('Підтвердити відповіді? Після цього змінити їх не можна.'); }
 
 /* ---------- Рушій 1. Запитання з вибором (одна або кілька відповідей) ---------- */
 function optTiles(it, cur, pick) {
@@ -933,7 +1167,7 @@ function playSortG(done, id, title, ROUNDS, part) {
       });
       stage.appendChild(cats);
       stage.appendChild(h('button', { class: 'btn big', style: 'margin:12px 0', text: P.r + 1 < ROUNDS.length ? 'Підтвердити й далі' : 'Підтвердити відповіді', disabled: pool.length ? 'disabled' : null, onclick: function () {
-        if (pool.length || !confirm('Підтвердити розкладені картки? Змінити їх після цього не можна.')) return;
+        if (pool.length || !ask('Підтвердити розкладені картки? Змінити їх після цього не можна.')) return;
         all.forEach(function (x) { var okk = P.assign[x.i] === x.c; if (okk) P.score++; P.rows.push({ q: x.t, mine: R.cats[P.assign[x.i]], right: R.cats[x.c], ok: okk }); });
         P.r++; P.assign = {}; P.ord = null;
         if (P.r >= ROUNDS.length) { P.fin = true; setProg(id, P); saveReview(id, P.rows); done(P.score); return; }
@@ -974,7 +1208,7 @@ function playOrder(done, id, title, ROUNDS, part) {
       var all = P.picked.length === R.items.length;
       stage.appendChild(h('div', { class: 'row', style: 'margin-top:12px' }, [
         h('button', { class: 'btn', style: 'flex:2', text: P.r + 1 < ROUNDS.length ? 'Підтвердити й далі' : 'Підтвердити відповіді', disabled: all ? null : 'disabled', onclick: function () {
-          if (!all || !confirm('Підтвердити порядок? Змінити його після цього не можна.')) return;
+          if (!all || !ask('Підтвердити порядок? Змінити його після цього не можна.')) return;
           P.score += lis(P.picked) - 1;
           P.picked.forEach(function (idx, p) { P.rows.push({ q: R.title + ' (місце ' + (p + 1) + ')', mine: R.items[idx].t, right: R.items[p].t, ok: idx === p }); });
           P.r++; P.ord = null; P.picked = [];
@@ -1201,6 +1435,8 @@ var LEVELS = [
 window.addEventListener('offline', function () { toast('Зник інтернет. Продовжуй працювати: відповіді зберігаються на пристрої.', 'bad'); });
 window.addEventListener('online', function () { toast('Інтернет повернувся!', 'ok'); });
 route();
+if (W.hiddenAt) markBack();
+if (profileOk() && sstore('imi_started')) sendProgress();
 </script>
 </body>
 </html>
