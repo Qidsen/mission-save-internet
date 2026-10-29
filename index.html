@@ -856,7 +856,7 @@ function showMenu(msg) {
   var cards = LEVELS.map(function (l, i) {
     var isDone = state.scores[l.id] != null, again = isDone && isTeacher();
     var b = h('div', { class: 'badge' }, [ico(l.icon), h('span', { class: 'lvnum', 'aria-hidden': 'true', text: isDone ? '✓' : String(i + 1) })]); b.style.setProperty('--bgc', l.color);
-    return h('button', { class: 'lv' + (isDone ? ' done' : '') + (l.id === nextId ? ' next' : ''), disabled: isDone && !again ? 'disabled' : null, 'aria-label': 'Рівень ' + (i + 1) + '. ' + l.title + (isDone ? ', пройдено' : ''), onclick: function () { startLevel(l); } }, [b, h('span', {}, [h('b', { text: l.title }), h('small', {}, [h('span', { class: 'par', text: l.par }), isDone ? (again ? 'Пройдено, натисни, щоб пройти ще раз' : 'Рівень пройдено') : (getProg(l.id) ? 'Продовжити з місця зупинки' : l.sub)])]), h('span', { class: 'meta' }, [starsHtml(state.stars[l.id] || 0)])]);
+    return h('button', { class: 'lv' + (isDone ? ' done' : '') + (l.id === nextId ? ' next' : ''), disabled: isDone && !again ? 'disabled' : null, 'aria-label': 'Рівень ' + (i + 1) + '. ' + l.title + (isDone ? ', пройдено' : ''), onclick: function () { startLevel(l); } }, [b, h('span', {}, [h('b', { text: l.title }), h('small', {}, [h('span', { class: 'par', text: l.par }), isDone ? (again ? 'Пройдено (вчитель може пройти ще раз)' : 'Рівень пройдено') : (getProg(l.id) ? 'Продовжити з місця зупинки' : l.sub)])]), h('span', { class: 'meta' }, [starsHtml(state.stars[l.id] || 0)])]);
   });
   var first = h('input', { type: 'text', placeholder: 'Ім\'я', maxlength: '30', value: state.first, autocomplete: 'given-name', 'aria-label': 'Ім\'я', oninput: function (e) { state.first = e.target.value; saveState(); } });
   var last = h('input', { type: 'text', placeholder: 'Прізвище', maxlength: '30', value: state.last, autocomplete: 'family-name', 'aria-label': 'Прізвище', oninput: function (e) { state.last = e.target.value; saveState(); } });
@@ -892,6 +892,7 @@ function startLevel(l) {
   if (!profileOk()) { showWelcome('Спочатку заповни досьє агента: ім\'я, прізвище та клас.'); return; }
   if (state.scores[l.id] != null) {
     if (!isTeacher()) { showMenu('Цей рівень уже пройдено, повторно проходити його не можна.'); return; }
+    if (!ask('Режим вчителя: пройти рівень «' + l.title + '» ще раз? Попередні відповіді й бали за нього буде скинуто. Учні повторно пройти рівень не можуть.')) return;
     delete state.scores[l.id]; delete state.stars[l.id]; setProg(l.id, null); saveState();
   }
   stopTimers(); stopConfetti(); CUR = l;
