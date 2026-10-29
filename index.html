@@ -132,6 +132,58 @@
   .lbox-scroll img { margin: auto; max-width: 100%; max-height: 100%; background: #fff; border-radius: 8px; padding: 6px; cursor: zoom-in; }
   .lbox.big .lbox-scroll img { max-width: none; max-height: none; width: 220%; cursor: zoom-out; }
   @media (min-width: 900px) { .lbox.big .lbox-scroll img { width: 160%; } }
+  /* Розбір відповідей: на сайті й у PDF */
+  .rv-lv { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 14px; margin-bottom: 12px; }
+  .rv-lh { display:flex; align-items:center; gap: 10px; margin-bottom: 4px; }
+  .rv-lh b { flex: 1; min-width: 0; font-family: var(--display); font-size: 1rem; }
+  .rv-n { flex: none; width: 28px; height: 28px; border-radius: 9px; display:grid; place-items:center; background: var(--card2); font-weight: 800; }
+  .rv-sc { flex: none; font-weight: 800; color: var(--cyan); white-space: nowrap; }
+  .rv-row { display:flex; gap: 10px; padding: 10px 12px; border-radius: 12px; margin-top: 8px; border: 1px solid var(--line); border-left-width: 5px; }
+  .rv-row.ok { border-left-color: var(--green); background: rgba(88,227,154,.07); }
+  .rv-row.bad { border-left-color: var(--red); background: rgba(255,111,138,.08); }
+  .rv-row.part { border-left-color: var(--yellow); background: rgba(255,216,74,.07); }
+  .rv-ic { flex: none; width: 26px; height: 26px; border-radius: 50%; display:grid; place-items:center; font-weight: 900; color: #0b0a24; }
+  .rv-row.ok .rv-ic { background: var(--green); } .rv-row.bad .rv-ic { background: var(--red); } .rv-row.part .rv-ic { background: var(--yellow); }
+  .rv-b { min-width: 0; overflow-wrap: anywhere; }
+  .rv-q { font-weight: 700; }
+  .rv-a { margin-top: 3px; }
+  .rv-k { color: var(--muted); font-weight: 700; }
+  .rv-a.mine { color: var(--red); } .rv-a.right { color: var(--green); }
+  .rv-pts { margin-top: 3px; color: var(--yellow); font-weight: 700; font-size: .9rem; }
+  .rv-empty { color: var(--muted); margin: 8px 0 0; } .rv-empty.ok { color: var(--green); font-weight: 700; }
+  .rv-top .row { margin-top: 4px; }
+  /* Аркуш PDF: світла версія того самого розбору */
+  .pdfhost { position: fixed; left: -12000px; top: 0; width: 760px; pointer-events: none; }
+  .pdfdoc { width: 720px; background: #fff; color: #1f2147; font-family: var(--body); font-size: 13px; line-height: 1.38;
+    --card: #fff; --card2: #eef0ff; --line: #e1e3f5; --muted: #6a6f99; --green: #12965a; --red: #d63a5a; --yellow: #b77d00; --cyan: #0b8798; --ink: #1f2147; }
+  .pdfdoc .rv-lv { border-radius: 14px; padding: 10px 12px; }
+  .pdfdoc .rv-lh b { font-size: 14px; }
+  .pdfdoc .rv-row { padding: 7px 10px; margin-top: 6px; }
+  .pdfdoc .rv-row.ok { background: #effaf4; } .pdfdoc .rv-row.bad { background: #fdf0f3; } .pdfdoc .rv-row.part { background: #fff8e6; }
+  .pdfdoc .rv-ic { color: #fff; width: 22px; height: 22px; font-size: 12px; }
+  .pd-head { display:flex; justify-content: space-between; align-items: center; gap: 16px; padding: 20px 24px; border-radius: 18px; color: #fff; margin-bottom: 12px;
+    background: linear-gradient(120deg, #251b62, #5b3fd8 55%, #0f8796); }
+  .pd-kick { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; opacity: .85; font-weight: 800; }
+  .pd-title { font-family: var(--display); font-size: 23px; font-weight: 800; margin: 4px 0; line-height: 1.15; }
+  .pd-sub { opacity: .92; font-weight: 700; }
+  .pd-grade { flex: none; width: 92px; height: 92px; border-radius: 50%; background: #ffd84a; color: #251b62; display:flex; flex-direction: column; align-items:center; justify-content:center; box-shadow: 0 0 0 6px rgba(255,255,255,.25); }
+  .pd-grade b { font-family: var(--display); font-size: 38px; line-height: 1; }
+  .pd-grade span { font-weight: 800; font-size: 11px; }
+  .pd-who { display:flex; align-items:center; gap: 14px; padding: 12px 16px; border: 1px solid #e1e3f5; border-radius: 14px; margin-bottom: 10px; }
+  .pd-name { flex: 1; min-width: 0; display:flex; flex-direction: column; }
+  .pd-name b { font-family: var(--display); font-size: 17px; }
+  .pd-name span { color: #6a6f99; font-weight: 700; }
+  .pd-stats { display:flex; gap: 8px; }
+  .pd-st { background: #f3f1ff; border-radius: 10px; padding: 6px 10px; text-align: center; min-width: 74px; }
+  .pd-st b { display:block; font-family: var(--display); font-size: 15px; color: #5b3fd8; }
+  .pd-st span { font-size: 10.5px; color: #6a6f99; font-weight: 700; }
+  .pd-legend { display:flex; gap: 16px; font-size: 11.5px; color: #6a6f99; font-weight: 700; margin: 0 4px 10px; }
+  .pd-legend i { display:inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+  .pd-foot { margin-top: 12px; text-align: center; color: #9a9ec0; font-size: 10.5px; }
+  .res-btns { display:flex; gap: 6px; justify-content: flex-end; }
+  .res-btns .narrow { display: none; }
+  @media (max-width: 560px) { .res-btns { flex-direction: column; align-items: stretch; } .res-btns .wide { display: none; } .res-btns .narrow { display: inline; } }
+  .res-tools { display:flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
   .zoomwrap { padding: 6px; margin: 0 0 12px; box-shadow: 0 8px 20px rgba(0,0,0,.3); }
   .zoom { aspect-ratio: 16 / 9; background-repeat: no-repeat; border-radius: 7px; background-color: #fff; }
 
@@ -764,9 +816,10 @@ function carousel() {
 /* ===== Малюнок-герой (анімована мережа) ===== */
 var HERO = '<svg class="net" viewBox="0 0 320 110" aria-hidden="true"><g fill="none" stroke-width="2.5" stroke-linecap="round">' +
   '<path d="M160 55L50 28M160 55L50 84M160 55L270 28M160 55L270 84" stroke="#a78bfa" stroke-opacity=".6" stroke-dasharray="5 6"><animate attributeName="stroke-dashoffset" values="22;0" dur="1.6s" repeatCount="indefinite"/></path></g>' +
+  /* Пакети даних летять під значками вузлів */
+  '<circle r="4" fill="#fff"><animateMotion dur="2.2s" repeatCount="indefinite" path="M50 28L160 55L270 84"/></circle><circle r="4" fill="#fde047"><animateMotion dur="2.8s" repeatCount="indefinite" path="M270 28L160 55L50 84"/></circle>' +
   '<g fill="#12102e" stroke-width="3"><circle cx="160" cy="55" r="24" stroke="#22d3ee"/><circle cx="50" cy="28" r="14" stroke="#f472b6"/><circle cx="50" cy="84" r="14" stroke="#fde047"/><circle cx="270" cy="28" r="14" stroke="#4ade80"/><circle cx="270" cy="84" r="14" stroke="#fb923c"/></g>' +
   '<g fill="none" stroke="#22d3ee" stroke-width="2.5"><circle cx="160" cy="55" r="12"/><ellipse cx="160" cy="55" rx="5" ry="12"/><path d="M148 55h24"/></g>' +
-  '<circle r="4" fill="#fff"><animateMotion dur="2.2s" repeatCount="indefinite" path="M50 28L160 55L270 84"/></circle><circle r="4" fill="#fde047"><animateMotion dur="2.8s" repeatCount="indefinite" path="M270 28L160 55L50 84"/></circle>' +
   '<circle cx="160" cy="55" r="24" fill="none" stroke="#22d3ee" stroke-opacity=".5"><animate attributeName="r" values="24;34;24" dur="2.4s" repeatCount="indefinite"/><animate attributeName="stroke-opacity" values=".6;0;.6" dur="2.4s" repeatCount="indefinite"/></circle></svg>';
 
 /* ===== Вітальна сторінка ===== */
@@ -929,7 +982,7 @@ function showMenu(msg) {
     h('div', { class: 'grid map' }, cards),
     h('div', { class: 'row', style: 'margin-top:12px' }, [
       h('button', { class: 'btn', text: t.all ? 'Моя оцінка' : 'Підсумок', onclick: showSummary }),
-      t.all || isTeacher() ? h('button', { class: 'btn alt', text: 'Розбір помилок', onclick: showReview }) : null,
+      t.all || isTeacher() ? h('button', { class: 'btn alt', text: 'Розбір відповідей', onclick: showReview }) : null,
       h('button', { class: 'btn alt', text: 'Таблиця лідерів', onclick: function () { showBoard(state.cls || CLASSES[0]); } })]),
     SHOW_MATERIALS ? h('h2', { text: 'Відео' }) : null,
     SHOW_MATERIALS ? h('div', { class: 'vids' }, VIDEOS.map(function (v) { return h('a', { class: 'vid', href: v.url, target: '_blank', rel: 'noopener noreferrer' }, [h('span', { class: 'play' }), h('span', {}, [h('b', { text: v.title }), h('small', { text: v.note })])]); })) : null,
@@ -973,31 +1026,107 @@ function finishLevel(l, score) {
 }
 
 /* ===== Розбір помилок (відкриває вчитель) ===== */
+/* ===== Розбір відповідей: на сайті й у PDF ===== */
+/* Рядок розбору: { q: питання, mine: відповідь учня, right: правильна, ok, got/max: частковий бал } */
+function rvRows(rows) {
+  return (rows || []).map(function (r) { return { q: String(r.q || ''), mine: String(r.mine || '—'), right: String(r.right || ''), ok: !!r.ok, got: r.max != null ? Number(r.got) || 0 : null, max: r.max != null ? Number(r.max) : null }; });
+}
+/* Розбір для сервера в стислому вигляді: рівень { t, s, m, r: [[q, mine, right, ok, got, max]] } */
+function reviewPayload() {
+  var rv = getReview();
+  return LEVELS.map(function (l) {
+    return { t: l.title, s: state.scores[l.id], m: l.max, r: rvRows(rv[l.id]).map(function (x) {
+      var a = [x.q.slice(0, 300), x.mine.slice(0, 300), x.right.slice(0, 300), x.ok ? 1 : 0]; if (x.max != null) a.push(x.got, x.max); return a; }) };
+  });
+}
+function unpackReview(lv) {
+  return (lv || []).map(function (l) { return { t: l.t, s: l.s, m: l.m, rows: (l.r || []).map(function (a) { return { q: a[0], mine: a[1], right: a[2], ok: !!a[3], got: a.length > 5 ? a[4] : null, max: a.length > 5 ? a[5] : null }; }) }; });
+}
+function localReview() {
+  var rv = getReview(), t = totals();
+  return { name: isTeacher() ? 'Вчитель (перегляд)' : displayName(), cls: isTeacher() ? '' : state.cls, av: state.av, test: TEST, score: t.sum, max: t.max,
+    grade: t.all ? gradeFor(t.sum, t.max) : null, date: '', levels: LEVELS.map(function (l) { return { t: l.title, s: state.scores[l.id], m: l.max, rows: rvRows(rv[l.id]) }; }) };
+}
+function rvCount(D) { var c = { ok: 0, all: 0 }; D.levels.forEach(function (l) { l.rows.forEach(function (r) { c.all++; if (r.ok) c.ok++; }); }); return c; }
+function buildReview(D, onlyBad) {
+  var root = h('div', { class: 'rv' });
+  D.levels.forEach(function (l, i) {
+    var rows = onlyBad ? l.rows.filter(function (r) { return !r.ok; }) : l.rows;
+    var sec = h('section', { class: 'rv-lv' }, [h('div', { class: 'rv-lh' }, [h('span', { class: 'rv-n', text: String(i + 1) }), h('b', { text: l.t }), h('span', { class: 'rv-sc', text: l.s != null ? l.s + ' з ' + l.m : 'не пройдено' })])]);
+    if (!l.rows.length) sec.appendChild(h('p', { class: 'rv-empty', text: l.s == null ? 'Рівень ще не пройдено.' : 'Немає даних.' }));
+    else if (!rows.length) sec.appendChild(h('p', { class: 'rv-empty ok', text: 'Без помилок!' }));
+    rows.forEach(function (r) {
+      var part = !r.ok && r.max != null && r.got > 0, kind = r.ok ? 'ok' : part ? 'part' : 'bad';
+      var body = [h('div', { class: 'rv-q', text: r.q })];
+      if (r.ok) body.push(h('div', { class: 'rv-a right' }, [h('span', { class: 'rv-k', text: 'Відповідь: ' }), r.right]));
+      else body.push(h('div', { class: 'rv-a mine' }, [h('span', { class: 'rv-k', text: 'Твоя відповідь: ' }), r.mine]), h('div', { class: 'rv-a right' }, [h('span', { class: 'rv-k', text: 'Правильно: ' }), r.right]));
+      if (r.max != null && !r.ok) body.push(h('div', { class: 'rv-pts', text: 'Зараховано ' + r.got + ' з ' + r.max + ' балів' }));
+      sec.appendChild(h('div', { class: 'rv-row ' + kind }, [h('span', { class: 'rv-ic', 'aria-label': r.ok ? 'правильно' : part ? 'частково' : 'помилка', text: r.ok ? '✓' : part ? '½' : '✗' }), h('div', { class: 'rv-b' }, body)]));
+    });
+    root.appendChild(sec);
+  });
+  return root;
+}
+
+/* PDF будується в браузері: бібліотеку html2pdf підвантажуємо лише тоді, коли вона потрібна */
+var LIBS = {}, H2P = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js', JSZIP = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+function loadLib(src) {
+  if (!LIBS[src]) LIBS[src] = new Promise(function (ok, no) { var sc = document.createElement('script'); sc.src = src; sc.onload = ok; sc.onerror = function () { delete LIBS[src]; no(new Error('lib')); }; document.head.appendChild(sc); });
+  return LIBS[src];
+}
+function pdfDoc(D) {
+  var c = rvCount(D), pct = D.max ? Math.round(D.score / D.max * 100) : 0;
+  function st(b, t) { return h('div', { class: 'pd-st' }, [h('b', { text: b }), h('span', { text: t })]); }
+  function dot(col, t) { var i = h('i'); i.style.background = col; return h('span', {}, [i, t]); }
+  return h('div', { class: 'pdfdoc' }, [
+    h('div', { class: 'pd-head' }, [h('div', {}, [h('div', { class: 'pd-kick', text: 'Розбір контрольної роботи з інформатики' }), h('div', { class: 'pd-title', text: D.test.title }), h('div', { class: 'pd-sub', text: D.test.label + (D.date ? ' · ' + D.date : '') })]),
+      D.grade != null ? h('div', { class: 'pd-grade' }, [h('b', { text: String(D.grade) }), h('span', { text: 'з 12' })]) : null]),
+    h('div', { class: 'pd-who' }, [pdfAvatar(D.av), h('div', { class: 'pd-name' }, [h('b', { text: D.name }), D.cls ? h('span', { text: 'Клас ' + D.cls }) : null]),
+      h('div', { class: 'pd-stats' }, [st(D.score + ' з ' + D.max, 'балів'), st(pct + '%', 'результат'), st(c.ok + ' з ' + c.all, 'правильних відповідей')])]),
+    h('div', { class: 'pd-legend' }, [dot('#12965a', 'правильно'), dot('#b77d00', 'частково правильно'), dot('#d63a5a', 'помилка: поруч правильна відповідь')]),
+    buildReview(D, false),
+    h('div', { class: 'pd-foot', text: 'Учитель інформатики Вовненко Ярослав Віталійович' })]);
+}
+/* html2canvas не розуміє currentColor і SVG без розмірів, тож для PDF задаємо їх явно */
+function pdfAvatar(av) {
+  var e = avatar(av, 'xl'), svg = e.querySelector('svg');
+  if (svg) { svg.setAttribute('width', '48'); svg.setAttribute('height', '48'); svg.innerHTML = svg.innerHTML.replace(/currentColor/g, '#12102e'); if (svg.getAttribute('stroke') === 'currentColor') svg.setAttribute('stroke', '#12102e'); }
+  return e;
+}
+function pdfName(D) { return ('Розбір ' + D.test.id + ' ' + (D.cls ? D.cls + ' ' : '') + D.name).replace(/[\\/:*?"<>|()]+/g, '').trim().replace(/\s+/g, '_') + '.pdf'; }
+function pdfMake(D, out) {
+  return loadLib(H2P).then(function () {
+    var el = pdfDoc(D), host = h('div', { class: 'pdfhost', 'aria-hidden': 'true' }, [el]); document.body.appendChild(host);
+    var w = window.html2pdf().set({ margin: [8, 8, 10, 8], filename: pdfName(D), image: { type: 'jpeg', quality: 0.85 }, html2canvas: { scale: 2, backgroundColor: '#ffffff' },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }, pagebreak: { mode: ['css'], avoid: ['.rv-row', '.rv-lh', '.pd-head', '.pd-who', '.rv-empty'] } }).from(el);
+    var job = out === 'blob' ? w.outputPdf('blob') : w.save();
+    return job.then(function (r) { host.remove(); return r; }, function (e) { host.remove(); throw e; });
+  });
+}
+/* Кнопка, яка показує «Готую PDF…», поки файл створюється */
+function pdfButton(label, cls, getData, after) {
+  var b = h('button', { class: cls, text: label, onclick: function () {
+    var D = getData(); if (!D) return;
+    b.disabled = true; b.textContent = 'Готую PDF…';
+    pdfMake(D).then(function () { toast('PDF збережено: ' + pdfName(D), 'ok'); if (after) after(); }, function () { toast('Не вдалося створити PDF. Перевір інтернет і спробуй ще раз.', 'bad'); })
+      .then(function () { b.disabled = false; b.textContent = label; });
+  } });
+  return b;
+}
+
 function showReview() {
   stopConfetti(); var box = h('div');
-  render([h('div', { class: 'topbar' }, [h('button', { class: 'btn alt', text: '‹ Меню', onclick: function () { showMenu(); } }), h('b', { text: 'Розбір помилок' })]), box]);
+  render([h('div', { class: 'topbar' }, [h('button', { class: 'btn alt', text: '‹ Меню', onclick: function () { showMenu(); } }), h('b', { text: 'Розбір відповідей' })]), box]);
   function draw() {
-    box.innerHTML = ''; var rv = getReview(), any = false;
-    LEVELS.forEach(function (l) {
-      var rows = rv[l.id] || [], bad = rows.filter(function (r) { return !r.ok; });
-      var sc = state.scores[l.id];
-      var card = h('div', { class: 'card' }, [h('h3', { text: l.title + (sc != null ? ': ' + sc + ' з ' + l.max + ' балів' : '') })]);
-      if (!rows.length) card.appendChild(h('p', { class: 'muted', text: sc == null ? 'Рівень ще не пройдено.' : 'Немає даних.' }));
-      else if (!bad.length) card.appendChild(h('p', { class: 'fb ok', text: 'Без помилок!' }));
-      bad.forEach(function (r) {
-        any = true;
-        var parts = [h('div', { style: 'font-weight:700', text: r.q })];
-        if (r.max != null) {
-          parts.push(h('div', { style: 'color:' + (r.got ? 'var(--yellow)' : 'var(--red)') + ';font-weight:700', text: 'Зараховано ' + r.got + ' з ' + r.max + ' балів' }));
-          if (r.miss.length) parts.push(h('div', { style: 'color:var(--green)', text: 'Треба було ще позначити: ' + r.miss.join('; ') }));
-          if (r.extra.length) parts.push(h('div', { style: 'color:var(--red)', text: 'Позначено зайве: ' + r.extra.join('; ') }));
-        } else {
-          parts.push(h('div', { style: 'color:var(--red)', text: 'Твоя відповідь: ' + r.mine }), h('div', { style: 'color:var(--green)', text: 'Правильно: ' + r.right }));
-        }
-        card.appendChild(h('div', { class: 'srow', style: 'display:block' }, parts));
-      });
-      box.appendChild(card);
-    });
+    var D = localReview(), c = rvCount(D), only = sstore('imi_rvbad') === '1';
+    box.innerHTML = '';
+    var seg = h('div', { class: 'seg', role: 'tablist' }, [['0', 'Усі відповіді'], ['1', 'Лише помилки']].map(function (o) {
+      return h('button', { class: 'seg-b' + ((only ? '1' : '0') === o[0] ? ' on' : ''), role: 'tab', 'aria-selected': (only ? '1' : '0') === o[0] ? 'true' : 'false', text: o[1], onclick: function () { sstore('imi_rvbad', o[0]); draw(); } });
+    }));
+    box.appendChild(h('div', { class: 'card rv-top' }, [
+      h('div', { class: 'stats' }, [stat(c.ok + ' з ' + c.all, 'правильних відповідей'), stat(c.all - c.ok, 'помилок', c.all - c.ok ? 'bad' : ''), D.grade != null ? stat(D.grade + ' / 12', 'оцінка') : null]),
+      seg, pdfButton('Завантажити PDF', 'btn', function () { return D; })]));
+    box.appendChild(buildReview(D, only));
   }
   // Учитель у режимі перегляду бачить розбір завжди, учні лише коли його відкрито на панелі
   if (!apiEnabled() || isTeacher()) { draw(); return; }
@@ -1012,7 +1141,7 @@ function showReview() {
 function resultPayload() {
   var t = totals(), details = {}, starSum = 0;
   LEVELS.forEach(function (l) { details[l.id] = { t: l.title, s: state.scores[l.id], m: l.max }; starSum += state.stars[l.id] || 0; });
-  return { test: TEST.id, code: store('imi_code') || '', first: state.first.trim(), last: state.last.trim(), cls: state.cls, score: t.sum, max: t.max, grade: gradeFor(t.sum, t.max), stars: starSum, details: details, leaves: W.leaves, away: Math.round(W.away / 1000), av: state.av, dev: devId(), round: store('imi_round') || undefined };
+  return { test: TEST.id, code: store('imi_code') || '', first: state.first.trim(), last: state.last.trim(), cls: state.cls, score: t.sum, max: t.max, grade: gradeFor(t.sum, t.max), stars: starSum, details: details, review: reviewPayload(), leaves: W.leaves, away: Math.round(W.away / 1000), av: state.av, dev: devId(), round: store('imi_round') || undefined };
 }
 /* Оцінка переїжджає: учень після завершення перейшов у свій клас або виправив ім'я */
 function moveResult(prev) {
@@ -1269,18 +1398,62 @@ function showAdmin(cls, tab) {
         if (!res || res.error) { toast(adminErr(res && res.error), 'bad'); return; }
         var rows = res.rows || [], body = h('tbody');
         if (!silent) toast(cls + ': завантажено результатів — ' + rows.length + '.', 'info');
+        /* Розбір відповідей кожного учня в PDF: окремо або архівом на весь клас */
+        var answers = null;
+        var getAnswers = function () {
+          return answers || (answers = apiGet({ action: 'answers', 'class': cls, test: curT, key: k() }).then(function (x) {
+            if (!x || x.error) { answers = null; throw new Error((x && x.error) || 'error'); }
+            var m = {}; (x.rows || []).forEach(function (a) { m[(a.last + '|' + a.first).toLowerCase()] = a; }); return m;
+          }, function (e) { answers = null; throw e; }));
+        };
+        var pdfData = function (a) { return { name: a.first + ' ' + a.last, cls: cls, av: a.av, test: TESTS[curT], score: a.s, max: a.m, grade: a.g, date: a.t ? new Date(a.t).toLocaleDateString('uk-UA') : '', levels: unpackReview(a.rv) }; };
+        var NO_RV = 'немає розбору: учень проходив контрольну до того, як на сайті з\'явився PDF.';
+        var onePdf = function (b, r) {
+          b.disabled = true; b.textContent = 'Готую…';
+          getAnswers().then(function (m) {
+            var a = m[(r.last + '|' + r.first).toLowerCase()];
+            if (!a || !a.rv) { toast(r.last + ' ' + r.first + ': ' + NO_RV, 'info'); return; }
+            var D = pdfData(a); return pdfMake(D).then(function () { toast('PDF збережено: ' + pdfName(D), 'ok'); });
+          }).catch(function (e) { toast(e && e.message === 'wrong key' ? 'Пароль змінився, увійди знову.' : 'Не вдалося створити PDF. Перевір інтернет і спробуй ще раз.', 'bad'); })
+            .then(function () { b.disabled = false; b.textContent = 'PDF'; });
+        };
+        var zipBtn = rows.length ? h('button', { class: 'btn', text: 'PDF усього класу (архів)', onclick: function () {
+          zipBtn.disabled = true; zipBtn.textContent = 'Готую…';
+          var zip, made = 0, skip = [];
+          Promise.all([getAnswers(), loadLib(JSZIP)]).then(function (x) {
+            var m = x[0], list = rows.map(function (r) { return m[(r.last + '|' + r.first).toLowerCase()]; });
+            zip = new window.JSZip();
+            return list.reduce(function (p, a, i) {
+              return p.then(function () {
+                if (!a || !a.rv) { skip.push(rows[i].last + ' ' + rows[i].first); return; }
+                zipBtn.textContent = 'Готую ' + (i + 1) + ' з ' + list.length + '…';
+                var D = pdfData(a); return pdfMake(D, 'blob').then(function (blob) { zip.file(pdfName(D), blob); made++; });
+              });
+            }, Promise.resolve());
+          }).then(function () {
+            if (!made) { toast('Немає жодного розбору для архіву: ' + NO_RV, 'info'); return; }
+            return zip.generateAsync({ type: 'blob' }).then(function (blob) {
+              var a = h('a', { href: URL.createObjectURL(blob), download: ('Розбір ' + curT + ' ' + cls).replace(/\s+/g, '_') + '.zip' }); document.body.appendChild(a); a.click(); a.remove();
+              setTimeout(function () { URL.revokeObjectURL(a.href); }, 60000);
+              toast('Архів готовий: ' + made + ' PDF.' + (skip.length ? ' Без розбору: ' + skip.join(', ') + '.' : ''), 'ok');
+            });
+          }).catch(function (e) { toast(e && e.message === 'wrong key' ? 'Пароль змінився, увійди знову.' : 'Не вдалося створити архів. Перевір інтернет і спробуй ще раз.', 'bad'); })
+            .then(function () { zipBtn.disabled = false; zipBtn.textContent = 'PDF усього класу (архів)'; });
+        } }) : null;
         rows.forEach(function (r) {
-          var del = h('button', { class: 'btn bad', style: 'min-height:40px;padding:6px 12px', text: 'Видалити', onclick: function () {
+          var pdfB = h('button', { class: 'btn alt', style: 'min-height:40px;padding:6px 12px', text: 'PDF', onclick: function () { onePdf(pdfB, r); } });
+          var del = h('button', { class: 'btn bad', style: 'min-height:40px;padding:6px 12px', title: 'Видалити результат', 'aria-label': 'Видалити результат ' + r.last + ' ' + r.first, html: '<span class="wide">Видалити</span><span class="narrow">✕</span>', onclick: function () {
             if (!ask('Видалити результат: ' + r.last + ' ' + r.first + '?')) return;
             act(del, function () { return apiPost({ action: 'delete', key: k(), cls: cls, test: curT, first: r.first, last: r.last }); }, 'Результат «' + r.last + ' ' + r.first + '» видалено.', function () { loadRes(true); });
           } });
-          body.appendChild(h('tr', {}, [h('td', {}, [h('span', { class: 'who' }, [avatar(r.av, 'sm'), h('span', { text: r.last + ' ' + r.first })])]), h('td', { text: r.g + ' / 12' }), h('td', { text: r.s + (r.m ? ' з ' + r.m : '') }), h('td', {}, [del])]));
+          body.appendChild(h('tr', {}, [h('td', {}, [h('span', { class: 'who' }, [avatar(r.av, 'sm'), h('span', { text: r.last + ' ' + r.first })])]), h('td', { text: r.g + ' / 12' }), h('td', { text: r.s + (r.m ? ' з ' + r.m : '') }), h('td', {}, [h('div', { class: 'res-btns' }, [pdfB, del])])]));
         });
         var clearBtn = rows.length ? h('button', { class: 'btn bad', style: 'margin-top:12px', text: 'Видалити весь клас ' + cls, onclick: function () {
           if (!ask('Видалити ВСІ результати й прогрес класу ' + cls + '?')) return;
           act(clearBtn, function () { return apiPost({ action: 'clear', key: k(), cls: cls, test: curT }); }, 'Усі результати класу ' + cls + ' видалено.', function () { loadRes(true); });
         } }) : null;
         box.appendChild(h('div', { class: 'card' }, [h('h3', { text: cls + ': результатів ' + rows.length }),
+          zipBtn ? h('div', { class: 'res-tools' }, [zipBtn, h('span', { class: 'muted', style: 'align-self:center', text: 'Кожен учень отримає свій файл із розбором усіх відповідей.' })]) : null,
           rows.length ? h('table', { class: 'tbl' }, [h('thead', {}, [h('tr', {}, [h('th', { text: 'Учень' }), h('th', { text: 'Оцінка' }), h('th', { text: 'Бали' }), h('th', { text: '' })])]), body]) : h('p', { class: 'muted', text: 'Результатів поки немає.' }),
           clearBtn]));
       }).catch(function () { box.innerHTML = ''; toast('Немає зв\'язку з таблицею. Перевір інтернет.', 'bad'); });

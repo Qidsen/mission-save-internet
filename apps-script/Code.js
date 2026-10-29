@@ -38,6 +38,27 @@ function staleRound_(d) { return d.round != null && d.round !== '' && Number(d.r
 var AV_RE = /^[a-z]{2,12}\.[0-9]$/;
 function av_(v) { v = String(v || ''); return AV_RE.test(v) ? v : ''; }
 
+/* Розбір відповідей учня для PDF: [{ t, s, m, r: [[питання, відповідь, правильна, 0/1, бал, максимум]] }].
+   Зберігаємо очищений JSON в одній клітинці (ліміт клітинки 50 000 символів). */
+function review_(lv) {
+  if (!Array.isArray(lv)) return '';
+  function str(v, n) { return String(v == null ? '' : v).replace(/[\r\n\t]+/g, ' ').slice(0, n); }
+  var out = lv.slice(0, 40).map(function (l) {
+    l = l || {};
+    return { t: str(l.t, 80), s: l.s == null ? null : num_(l.s, 1000), m: num_(l.m, 1000), r: (Array.isArray(l.r) ? l.r : []).slice(0, 80).map(function (a) {
+      a = Array.isArray(a) ? a : []; var x = [str(a[0], 300), str(a[1], 300), str(a[2], 300), a[3] ? 1 : 0];
+      if (a.length > 5) x.push(num_(a[4], 100), num_(a[5], 100));
+      return x;
+    }) };
+  });
+  var j = JSON.stringify(out);
+  for (var cut = 200; j.length > 49000 && cut >= 40; cut -= 40) {
+    out.forEach(function (l) { l.r.forEach(function (x) { x[0] = x[0].slice(0, cut); x[1] = x[1].slice(0, cut); x[2] = x[2].slice(0, cut); }); });
+    j = JSON.stringify(out);
+  }
+  return j.length > 49000 ? '' : j;
+}
+
 function out_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
 /* Прибирає переноси й захищає від формул у клітинках */
 function clean_(v, n) { v = String(v == null ? '' : v).replace(/[\r\n\t]+/g, ' ').trim().slice(0, n || 30); return /^[=+\-@]/.test(v) ? "'" + v : v; }
@@ -224,6 +245,8 @@ function doPost(e) {
         while (row.length <= col) row.push('');
         row[col] = (x.s == null ? '—' : Number(x.s)) + ' з ' + Number(x.m || 0);
       });
+      var rvj = review_(d.review);
+      if (rvj) { var c5 = col_(sh, head, 'Розбір'); while (row.length <= c5) row.push(''); row[c5] = rvj; }
       while (row.length < head.length) row.push('');
       sh.appendRow(row);
       return out_({ ok: true });
@@ -348,6 +371,15 @@ function doGet(e) {
   if (p.action === 'list') {
     if (!keyOk_(p.key)) return out_({ error: 'wrong key' });
     return out_({ test: test, rows: data });
+  }
+  if (p.action === 'answers') {
+    // Розбір відповідей кожного учня (для PDF), лише з ключем вчителя
+    if (!keyOk_(p.key)) return out_({ error: 'wrong key' });
+    var rvc = sh ? head_(sh).indexOf('Розбір') : -1;
+    return out_({ test: test, rows: (sh ? rows_(sh) : []).map(function (r) {
+      var rv = null; if (rvc >= 0 && r[rvc]) { try { rv = JSON.parse(String(r[rvc])); } catch (x) {} }
+      return { t: new Date(r[0]).getTime(), last: strip_(r[2]), first: strip_(r[3]), g: Number(r[4]), s: Number(r[5]), m: Number(r[6]), av: avc >= 0 ? av_(r[avc]) : '', rv: rv };
+    }) });
   }
   return out_({ error: 'unknown action' });
 }
