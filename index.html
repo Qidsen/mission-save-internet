@@ -720,7 +720,7 @@ function showWelcome(msg, edit) {
   var err = h('div', { class: 'fb bad', 'aria-live': 'polite' }), avSel = state.av || avRandom();
   var picker = avatarPicker(avSel, function (v) { avSel = v; });
   var classChip = h('div', { class: 'classchip' }, [h('span', { class: 'muted', text: 'Твій клас:' }), h('b', { text: state.cls }),
-    h('button', { class: 'linkbtn', text: 'Інший код', onclick: function () { unstore('imi_code'); showGate(); } })]);
+    h('button', { class: 'linkbtn', text: 'Інший код', onclick: function () { otherCode(); } })]);
   function go() {
     if (!first.value.trim() || !last.value.trim()) { err.textContent = 'Заповни ім\'я та прізвище.'; toast('Заповни ім\'я та прізвище.', 'bad'); return; }
     var prev = { first: state.first.trim(), last: state.last.trim(), cls: state.cls, test: TEST ? TEST.id : '' };
@@ -730,6 +730,7 @@ function showWelcome(msg, edit) {
     showMenu();
     toast(edit ? 'Досьє оновлено.' : 'Місію розпочато! Успіху, агенте ' + state.first + '!', 'ok');
     sendProgress(moved ? prev : null);
+    if (moved && prev.test === TEST.id) moveResult({ cls: state.cls, code: store('imi_code') || '', first: prev.first, last: prev.last });
   }
   var btn = h('button', { class: 'btn big', style: 'margin-top:6px', text: edit ? 'Зберегти зміни' : 'Почати місію', onclick: go });
   if (edit) {
@@ -743,7 +744,7 @@ function showWelcome(msg, edit) {
     ['Правила', 'Рівні можна проходити в будь-якому порядку. Усередині рівня можна повертатися до попередньої частини й змінювати відповіді, а також вийти в меню й продовжити пізніше. Коли натиснеш «Завершити рівень», відповіді зафіксуються. Якщо браузер закриється або зникне інтернет, відкрий сторінку знову: гра продовжиться з місця зупинки. Підказок немає, працюй самостійно. Не виходь зі сторінки: перехід в іншу вкладку чи застосунок фіксується, і вчитель це бачить.'],
     ['Оцінка', 'Коли пройдеш усі рівні, одразу побачиш свою оцінку за 12-бальною шкалою. Результат автоматично потрапить до вчителя й до таблиці лідерів твого класу (там видно твоє ім\'я, прізвище й аватарку).']];
   render([
-    h('div', { class: 'topbar' }, [h('button', { class: 'btn alt', text: '‹ Інший код', onclick: function () { unstore('imi_code'); showGate(); } }), h('span', { class: 'muted', text: 'Клас ' + state.cls })]),
+    h('div', { class: 'topbar' }, [h('button', { class: 'btn alt', text: '‹ Інший код', onclick: function () { otherCode(); } }), h('span', { class: 'muted', text: 'Клас ' + state.cls })]),
     h('h1', { text: TEST ? TEST.title : 'Контрольна з інформатики' }),
     TEST ? h('p', { class: 'lead', style: 'margin-top:-2px', text: TEST.label }) : null,
     h('div', { html: HERO }),
@@ -792,6 +793,7 @@ function showGate(msg) {
         if (!applyActive()) { showNoTest(); return; }
         showMenu(); toast('Твій клас: ' + state.cls + '. Продовжуємо!', 'ok');
         sendProgress(prev && (prev.cls !== state.cls || prev.test !== TEST.id) ? prev : null);
+        if (prev && prev.cls !== state.cls && prev.test === TEST.id) moveResult({ cls: prev.cls, code: store('imi_prevcode') || '', first: prev.first, last: prev.last });
       }, 1400);
     }).catch(function () { btn.disabled = false; setState('denied', 'Немає зв\'язку. Перевір інтернет і спробуй ще раз.'); });
   }
@@ -809,7 +811,7 @@ function showNoTest() {
     mascot('Для ' + gradeOf(state.cls) + ' класу зараз немає відкритої контрольної. Зачекай, поки вчитель її відкриє, і натисни «Перевірити ще раз».', 'happy'),
     h('div', { class: 'card row', style: 'justify-content:space-between' }, [h('span', { class: 'row', style: 'flex-wrap:nowrap;gap:12px' }, [avatar(state.av), h('span', {}, [h('b', { text: displayName() }), h('span', { class: 'muted', text: ', ' + state.cls })])]),
       h('button', { class: 'btn alt', style: 'min-height:40px;padding:6px 14px', text: 'Змінити', onclick: function () { showWelcome(null, true); } })]),
-    check, h('button', { class: 'btn alt big', style: 'margin-top:10px', text: '‹ Ввести інший код', onclick: function () { unstore('imi_code'); showGate(); } })]);
+    check, h('button', { class: 'btn alt big', style: 'margin-top:10px', text: '‹ Ввести інший код', onclick: function () { otherCode(); } })]);
 }
 /* Учитель змінив код класу: просимо ввести новий */
 var codeAsked = false;
@@ -843,7 +845,7 @@ function showMenu(msg) {
     mascot(isTeacher() ? 'Привіт! Це режим перегляду для вчителя: проходь будь-які рівні скільки завгодно, нічого не запишеться.' : hi + 'Рівні можна проходити в будь-якому порядку. Завершений рівень змінити вже не можна, тож перевіряй відповіді!', 'happy'),
     msg ? h('div', { class: 'warn', text: msg }) : null,
     isTeacher() ? h('div', { class: 'teacherbar' }, [h('div', {}, [h('b', { text: 'Режим вчителя' }), h('div', { text: 'Прогрес і результати не записуються, виходи зі сторінки не рахуються. Пройдені рівні можна відкривати знову.' })]), h('button', { class: 'btn alt', text: 'Вийти з режиму', onclick: exitTeacher })]) : null,
-    isTeacher() ? null : h('div', { class: 'card row', style: 'justify-content:space-between' }, [h('span', { class: 'row', style: 'flex-wrap:nowrap;gap:12px' }, [avatar(state.av), h('span', {}, [h('b', { text: displayName() }), h('span', { class: 'muted', text: ', ' + state.cls })])]), (!t.all ? h('button', { class: 'btn alt', style: 'min-height:40px;padding:6px 14px', text: 'Змінити', onclick: function () { showWelcome(null, true); } }) : null)]),
+    isTeacher() ? null : h('div', { class: 'card row', style: 'justify-content:space-between' }, [h('span', { class: 'row', style: 'flex-wrap:nowrap;gap:12px' }, [avatar(state.av), h('span', {}, [h('b', { text: displayName() }), h('span', { class: 'muted', text: ', ' + state.cls })])]), h('button', { class: 'btn alt', style: 'min-height:40px;padding:6px 14px', text: 'Змінити', onclick: function () { showWelcome(null, true); } })]),
     SHOW_MATERIALS ? h('h2', { text: 'Секретні матеріали' }) : null,
     SHOW_MATERIALS ? carousel() : null,
     h('h2', { text: 'Місія' }),
@@ -929,6 +931,22 @@ function showReview() {
 }
 
 /* ===== Підсумок + надсилання ===== */
+function resultPayload() {
+  var t = totals(), details = {}, starSum = 0;
+  LEVELS.forEach(function (l) { details[l.id] = { t: l.title, s: state.scores[l.id], m: l.max }; starSum += state.stars[l.id] || 0; });
+  return { test: TEST.id, code: store('imi_code') || '', first: state.first.trim(), last: state.last.trim(), cls: state.cls, score: t.sum, max: t.max, grade: gradeFor(t.sum, t.max), stars: starSum, details: details, leaves: W.leaves, away: Math.round(W.away / 1000), av: state.av };
+}
+/* Оцінка переїжджає: учень після завершення перейшов у свій клас або виправив ім'я */
+function moveResult(prev) {
+  if (!TEST || !totals().all || isTeacher() || !apiEnabled()) return;
+  var p = resultPayload(); p.prev = prev;
+  apiSubmit(p).then(function (r) {
+    if (r && r.ok) toast(prev.cls !== state.cls ? 'Оцінку перенесено в ' + state.cls + '.' : 'Оцінку оновлено з новим ім\'ям.', 'ok');
+    else toast('Не вдалося перенести оцінку. Відкрий «Моя оцінка», щоб надіслати ще раз.', 'bad');
+  }).catch(function () { toast('Немає зв\'язку: оцінку не перенесено. Відкрий «Моя оцінка», щоб надіслати ще раз.', 'bad'); });
+}
+/* «Інший код»: запам'ятовуємо попередній код, щоб за потреби перенести оцінку */
+function otherCode() { var c = store('imi_code'); if (c) store('imi_prevcode', c); unstore('imi_code'); showGate(); }
 function showSummary() {
   var t = totals();
   var rows = LEVELS.map(function (l) { return h('div', { class: 'srow sumrow' }, [h('span', { class: 'sum-t', text: l.title }), h('span', { class: 'sum-s' }, [h('b', { text: state.scores[l.id] != null ? String(state.scores[l.id]) : '—' }), ' з ' + l.max]), starsHtml(state.stars[l.id] || 0)]); });
@@ -946,13 +964,12 @@ function showSummary() {
   ]);
   if (isTeacher()) { status.textContent = 'Режим вчителя: результат нікуди не надсилається.'; return; }
   if (!apiEnabled()) { status.textContent = 'Таблиця вчителя ще не підключена, результат не надіслано. Зроби знімок цього екрана для вчителя.'; return; }
-  var details = {}, starSum = 0; LEVELS.forEach(function (l) { details[l.id] = { t: l.title, s: state.scores[l.id], m: l.max }; starSum += state.stars[l.id] || 0; });
   var retry = h('button', { class: 'btn big', style: 'display:none;margin-bottom:12px', text: 'Надіслати ще раз', onclick: function () { send(); } });
   status.parentNode.insertBefore(retry, status.nextSibling);
   function fail(txt) { status.className = 'fb bad'; status.textContent = txt + ' Твій результат збережено на цьому пристрої: перевір інтернет і натисни «Надіслати ще раз».'; retry.style.display = 'block'; toast('Результат не надіслано. Перевір інтернет і натисни «Надіслати ще раз».', 'bad'); }
   function send() {
     status.className = 'fb'; status.textContent = 'Надсилаю результат вчителю…'; retry.style.display = 'none';
-    apiSubmit({ test: TEST.id, code: store('imi_code') || '', first: state.first.trim(), last: state.last.trim(), cls: state.cls, score: t.sum, max: t.max, grade: grade, stars: starSum, details: details, leaves: W.leaves, away: Math.round(W.away / 1000), av: state.av })
+    apiSubmit(resultPayload())
       .then(function (r) {
         if (r && r.ok) { status.className = 'fb ok'; status.textContent = r.unconfirmed ? 'Результат надіслано (підтвердження не отримано).' : 'Результат надіслано вчителю!'; toast(r.duplicate ? 'Результат уже був у вчителя, зараховано перший.' : 'Результат надіслано вчителю!', 'ok'); return loadBoard(boardBox, state.cls, true); }
         if (r && r.error === 'bad code') { codeRejected(); return; }

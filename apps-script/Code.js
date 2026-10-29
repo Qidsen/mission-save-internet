@@ -175,6 +175,13 @@ function doPost(e) {
       var score = Number(d.score), max = Number(d.max), grade = Number(d.grade), stars = Number(d.stars) || 0;
       if (!first || !last) return out_({ ok: false, error: 'name required' });
       if (!(max > 0 && max <= 1000) || !(score >= 0 && score <= max) || !(grade >= 1 && grade <= 12)) return out_({ ok: false, error: 'bad numbers' });
+      // Учень перейшов у правильний клас або виправив ім'я після завершення: прибираємо стару оцінку.
+      // Це можна лише з правильним кодом того класу, де лежить стара оцінка.
+      var pv = d.prev;
+      if (pv && CLASS_RE.test(String(pv.cls)) && codeOk_(pv.cls, pv.code) && (pv.cls !== d.cls || !same_(pv.first, first) || !same_(pv.last, last))) {
+        var osh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName_(pv.cls, String(d.test)));
+        if (osh) { var od = rows_(osh); for (var oi = od.length - 1; oi >= 0; oi--) if (same_(od[oi][2], pv.last) && same_(od[oi][3], pv.first)) osh.deleteRow(oi + 2); }
+      }
       var sh = sheet_(d.cls, String(d.test)), head = head_(sh), data = rows_(sh);
       for (var i = 0; i < data.length; i++) {
         // Контрольна: зараховується лише перший результат учня, повторні надсилання ігноруються.
