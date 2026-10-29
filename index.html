@@ -825,13 +825,15 @@ function showBoard(cls) {
 var W = (function () { try { return JSON.parse(store('imi_watch') || '{}') || {}; } catch (e) { return {}; } })();
 W.leaves = W.leaves || 0; W.away = W.away || 0;
 function saveW() { store('imi_watch', JSON.stringify(W)); }
-function watching() { return !isTeacher() && profileOk() && !!sstore('imi_started') && !totals().all; }
+/* Сторінка вчителя й екран телевізора не належать до гри: з них нічого не надсилаємо */
+function onStaffPage() { var hs = location.hash || ''; return hs.indexOf('#admin') === 0 || hs.indexOf('#tv') === 0; }
+function watching() { return !isTeacher() && !onStaffPage() && profileOk() && !!sstore('imi_started') && !totals().all; }
 var confirmAt = 0;
 /* Діалог підтвердження: браузер може вважати його виходом зі сторінки, тому позначаємо час */
 function ask(msg) { confirmAt = Date.now(); try { return window.confirm(msg); } finally { confirmAt = Date.now(); } }
 function fmtDur(ms) { var s = Math.round(ms / 1000), m = Math.floor(s / 60); return m ? m + ' хв ' + (s % 60) + ' с' : s + ' с'; }
 function sendProgress(prev) {
-  if (isTeacher() || !apiEnabled() || !profileOk() || !sstore('imi_started')) return;
+  if (isTeacher() || onStaffPage() || !apiEnabled() || !profileOk() || !sstore('imi_started')) return;
   var t = totals(), inLevel = CUR && state.scores[CUR.id] == null;
   apiPost({ action: 'progress', first: state.first.trim(), last: state.last.trim(), cls: state.cls, done: t.done, total: LEVELS.length,
     pct: Math.round(t.done / LEVELS.length * 100), now: t.all ? 'Завершив контрольну' : inLevel ? 'Рівень ' + (LEVELS.indexOf(CUR) + 1) + ': ' + CUR.title : 'Меню',
@@ -962,6 +964,12 @@ function showAdmin(cls, tab) {
       apiGet({ action: 'live', 'class': CLASSES[0], key: k() }).then(function (r) { tBtn.disabled = false; if (r && !r.error) enterTeacher(); else toast(adminErr(r && r.error), 'bad'); })
         .catch(function () { tBtn.disabled = false; toast('Немає зв\'язку з таблицею.', 'bad'); });
     } });
+    var roundBtn = h('button', { class: 'btn bad', text: 'Почати нову спробу', onclick: function () {
+      if (!ask('Почати нову спробу? Усі результати й прогрес УСІХ класів буде видалено з таблиці, а в учнів скинуться пройдені рівні.')) return;
+      if (!ask('Точно? Цю дію не можна скасувати.')) return;
+      act(roundBtn, function () { return apiPost({ action: 'newround', key: k() }); }, 'Нову спробу розпочато: таблицю очищено, учні почнуть з чистого аркуша.', revStatus);
+    } });
+    box.appendChild(h('div', { class: 'card' }, [h('b', { text: 'Нова спроба' }), h('p', { class: 'muted', text: 'Після тренування натисни, щоб почати справжню контрольну з чистого аркуша. Таблиця й прогрес усіх класів очищаються, а в кожного учня при наступному відкритті сайту скидаються пройдені рівні. Ім\'я та аватарка лишаються. Розбір помилок закривається.' }), roundBtn]));
     box.appendChild(h('div', { class: 'card' }, [h('b', { text: 'Режим вчителя' }), h('p', { class: 'muted', text: 'Пройди гру як учень, але без запису: тебе не буде в прогресі, на телевізорі й у таблиці лідерів. Пройдені рівні можна відкривати знову.' }), tBtn]));
     box.appendChild(h('div', { class: 'card' }, [h('b', { text: 'На цьому пристрої' }), h('p', { class: 'muted', text: 'Щоб заново пройти гру під час тестування, очисти локальні результати.' }),
       h('button', { class: 'btn alt', text: 'Очистити локальні результати', onclick: function () {
@@ -1461,6 +1469,18 @@ LEVELS.forEach(function (l) { if (l.pages) { l.max = levelMax(l); l.run = functi
 window.addEventListener('offline', function () { toast('Зник інтернет. Продовжуй працювати: відповіді зберігаються на пристрої.', 'bad'); });
 window.addEventListener('online', function () { toast('Інтернет повернувся!', 'ok'); });
 route();
+/* Нова спроба від вчителя: скидаємо пройдені рівні на цьому пристрої (ім'я та аватарка лишаються) */
+if (apiEnabled() && !isTeacher() && !onStaffPage()) apiGet({ action: 'status' }).then(function (r) {
+  if (!r || r.round == null) return;
+  var mine = store('imi_round');
+  if (mine == null) { store('imi_round', String(r.round)); return; }
+  if (String(r.round) === mine) return;
+  store('imi_round', String(r.round));
+  ['imi_state', 'imi_prog', 'imi_review', 'imi_watch'].forEach(unstore);
+  state.scores = {}; state.stars = {}; W = { leaves: 0, away: 0 }; stopTimers(); CUR = null;
+  if (location.hash === '' || location.hash === '#') { route(); sendProgress(); }
+  toast('Учитель розпочав нову спробу. Попередні результати скинуто, можна починати знову!', 'info');
+}).catch(function () {});
 if (W.hiddenAt) markBack();
 if (profileOk() && sstore('imi_started')) sendProgress();
 </script>

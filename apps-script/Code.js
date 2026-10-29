@@ -126,6 +126,14 @@ function doPost(e) {
 
     if (d.key !== ADMIN_KEY) return out_({ ok: false, error: 'wrong key' });
     if (act === 'setreview') { props_().setProperty('review', d.value ? '1' : '0'); return out_({ ok: true }); }
+    if (act === 'newround') {
+      // Нова спроба: очищаємо всі результати й прогрес, а пристрої учнів скинуть локальні дані за номером спроби
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      ss.getSheets().forEach(function (x) { if (CLASS_RE.test(x.getName()) || x.getName() === PROG) { var lr = x.getLastRow(); if (lr > 1) x.deleteRows(2, lr - 1); } });
+      var round = (Number(props_().getProperty('round')) || 1) + 1;
+      props_().setProperty('round', String(round)); props_().setProperty('review', '0');
+      return out_({ ok: true, round: round });
+    }
     if (!CLASS_RE.test(String(d.cls))) return out_({ ok: false, error: 'bad class' });
     if (act === 'delete') {
       var sh2 = sheet_(d.cls), data2 = rows_(sh2);
@@ -148,7 +156,7 @@ function doPost(e) {
 
 function doGet(e) {
   var p = e.parameter || {};
-  if (p.action === 'status') return out_({ review: props_().getProperty('review') === '1' });
+  if (p.action === 'status') return out_({ review: props_().getProperty('review') === '1', round: Number(props_().getProperty('round')) || 1 });
   var cls = p['class'];
   if (!CLASS_RE.test(String(cls))) return out_({ error: 'bad class' });
   if (p.action === 'live' || p.action === 'tv') {
