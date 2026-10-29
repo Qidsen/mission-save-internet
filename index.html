@@ -144,11 +144,14 @@ var CLASSES = ['5-А', '5-Б', '5-В', '5-Г'];
    { type: 'img',   src: 'media/router.jpg', title: 'Роутер', text: 'Підпис до фото' },
    { type: 'video', src: 'media/lesson.mp4', title: 'Відео', text: 'Підпис до відео' }  */
 var MEDIA = [];
-/* Відео за посиланням (відкриваються на YouTube). Перед уроком перегляньте їх самі. */
+/* Це контрольна робота, тому підказки (карусель і відео) за замовчуванням вимкнені.
+   Поставте true, якщо хочете використати сайт як підготовку до контрольної. */
+var SHOW_MATERIALS = false;
+/* Відео та курси за посиланням (відкриваються в новій вкладці). Перед уроком перегляньте їх самі. */
 var VIDEOS = [
-  { title: 'Як працює Інтернет', note: 'Відео для 5 класу', url: 'https://www.youtube.com/watch?v=a3BkZ6RoNII' },
-  { title: 'Що таке штучний інтелект і навіщо він потрібен?', note: 'Пояснення простими словами', url: 'https://www.youtube.com/watch?v=4GnM_K9pKs4' },
-  { title: 'Мультфільм «Про безпеку в Інтернеті»', note: 'Сторінка на «Всеосвіті»', url: 'https://vseosvita.ua/library/multfilm-pro-bezpeku-v-interneti-440966.html' }
+  { title: 'Всеукраїнська школа онлайн: інформатика, 5 клас', note: 'Відеоуроки платформи, яку підтримує МОН (канал на YouTube)', url: 'https://www.youtube.com/@ukrainian-online-school' },
+  { title: 'Дія.Освіта: «Особиста безпека підлітків»', note: 'Навчальний серіал державного порталу про безпеку в Інтернеті', url: 'https://osvita.diia.gov.ua/courses/teenagers-personal-safety' },
+  { title: 'Як захистити себе онлайн: відео про цифрову безпеку', note: 'Серія від FCA Ukraine та Департаменту превенції Нацполіції', url: 'https://osvita.ua/school/97685/' }
 ];
 
 /* ===== Допоміжні ===== */
@@ -334,7 +337,7 @@ var LEVELS = [
 ];
 var timers = [];
 function stopTimers() { timers.forEach(clearInterval); timers = []; }
-function levelTop(title) { return h('div', { class: 'topbar' }, [h('button', { class: 'btn alt', text: '‹ Меню', onclick: function () { stopTimers(); showMenu(); } }), h('b', { text: title })]); }
+function levelTop(title) { return h('div', { class: 'topbar' }, [h('b', { text: title }), h('span', { class: 'muted', text: 'Без повернення' })]); }
 
 
 /* ===== Вітальна сторінка ===== */
@@ -347,14 +350,14 @@ function showWelcome(msg) {
     if (!first.value.trim() || !last.value.trim() || !cls.value) { err.textContent = 'Заповни ім\'я, прізвище та обери клас, щоб почати місію.'; return; }
     state.first = first.value.trim(); state.last = last.value.trim(); state.cls = cls.value; saveState(); sstore('imi_started', '1'); showMenu();
   }
-  var tips = [['Що це за гра?', 'Це підготовка до контрольної роботи з інформатики (§ 1–5): Інтернет, мережі, інформаційні процеси та системи, факти й судження.'],
-    ['Як це працює?', 'Пройди 5 рівнів: у кожному можна заробити до трьох зірок. Коли пройдеш усі, побачиш свою оцінку за 12-бальною шкалою.'],
-    ['Лідери класу', 'Твій результат потрапить до таблиці лідерів твого класу. Інші бачать лише ім\'я та першу літеру прізвища.'],
-    ['Порада', 'Перегляньте «секретні матеріали» (карусель) і відео в меню: вони допоможуть згадати теми. Помилився? Можна пройти рівень ще раз!']];
+  var tips = [['Що це?', 'Це контрольна робота з інформатики (§ 1–5): Інтернет, мережі, інформаційні процеси та системи, факти й судження. Вона має вигляд гри з п\'яти рівнів.'],
+    ['Правила', 'Кожен рівень проходиться лише один раз, повернутися або перепройти його не можна. Не закривай і не оновлюй сторінку під час рівня: незавершений рівень зараховується як 0 балів. Підказок немає, працюй самостійно.'],
+    ['Оцінка', 'Коли пройдеш усі рівні, одразу побачиш свою оцінку за 12-бальною шкалою. Результат автоматично потрапить до вчителя й до таблиці лідерів твого класу (там видно лише ім\'я та першу літеру прізвища).'],
+    ['Перед стартом', 'Уважно впиши своє ім\'я та прізвище й обери свій клас. Після початку першого рівня змінити їх не можна.']];
   render([
-    h('h1', { text: 'Вітаю в місії «Врятувати Інтернет»!' }),
+    h('h1', { text: 'Контрольна робота: місія «Врятувати Інтернет»' }),
     h('div', { html: HERO }),
-    mascot('Привіт! Я Біт. Зловмисники зламали частину Інтернету, і тільки ти можеш його врятувати. Ти з нами?', 'wow'),
+    mascot('Привіт! Я Біт. Зловмисники зламали частину Інтернету, і тільки ти можеш його врятувати. Покажи, що знаєш матеріал!', 'wow'),
     h('div', { class: 'card' }, tips.map(function (t) { return h('div', { style: 'margin-bottom:10px' }, [h('b', { text: t[0] }), h('p', { class: 'muted', style: 'margin:2px 0 0', text: t[1] })]); })),
     msg ? h('div', { class: 'warn', text: msg }) : null,
     h('div', { class: 'card' }, [h('b', { text: 'Досьє агента' }), h('div', { class: 'row', style: 'margin-top:8px' }, [first, last, cls]), err,
@@ -370,7 +373,8 @@ function showMenu(msg) {
   var pct = Math.round(starTotal / (LEVELS.length * 3) * 100);
   var cards = LEVELS.map(function (l, i) {
     var b = h('div', { class: 'badge' }, [ico(l.icon)]); b.style.setProperty('--bgc', l.color);
-    return h('button', { class: 'lv', onclick: function () { startLevel(l); } }, [b, h('span', {}, [h('b', { text: 'Рівень ' + (i + 1) + '. ' + l.title }), h('small', { text: l.sub })]), h('span', { class: 'meta' }, [starsHtml(state.stars[l.id] || 0)])]);
+    var isDone = state.scores[l.id] != null;
+    return h('button', { class: 'lv', disabled: isDone ? 'disabled' : null, style: isDone ? 'opacity:.6;cursor:default' : null, onclick: function () { startLevel(l); } }, [b, h('span', {}, [h('b', { text: 'Рівень ' + (i + 1) + '. ' + l.title }), h('small', { text: isDone ? 'Рівень пройдено' : l.sub })]), h('span', { class: 'meta' }, [starsHtml(state.stars[l.id] || 0)])]);
   });
   var first = h('input', { type: 'text', placeholder: 'Ім\'я', maxlength: '30', value: state.first, autocomplete: 'given-name', 'aria-label': 'Ім\'я', oninput: function (e) { state.first = e.target.value; saveState(); } });
   var last = h('input', { type: 'text', placeholder: 'Прізвище', maxlength: '30', value: state.last, autocomplete: 'family-name', 'aria-label': 'Прізвище', oninput: function (e) { state.last = e.target.value; saveState(); } });
@@ -381,37 +385,39 @@ function showMenu(msg) {
   render([
     h('h1', { text: 'Місія: Врятувати Інтернет' }),
     h('div', { html: HERO }),
-    mascot(hi + 'Подивись підказки нижче й вирушай у бій!', 'happy'),
+    mascot(hi + 'Проходь рівні по черзі. Кожен можна пройти лише раз, тож зосередься!', 'happy'),
     msg ? h('div', { class: 'warn', text: msg }) : null,
-    h('div', { class: 'card row', style: 'justify-content:space-between' }, [h('span', {}, [h('b', { text: 'Агент: ' + displayName() }), h('span', { class: 'muted', text: ' · ' + state.cls })]), h('button', { class: 'btn alt', style: 'min-height:40px;padding:6px 14px', text: 'Змінити', onclick: showWelcome })]),
-    h('h2', { text: 'Секретні матеріали' }),
-    carousel(),
+    h('div', { class: 'card row', style: 'justify-content:space-between' }, [h('span', {}, [h('b', { text: 'Агент: ' + displayName() }), h('span', { class: 'muted', text: ' · ' + state.cls })]), (t.done === 0 ? h('button', { class: 'btn alt', style: 'min-height:40px;padding:6px 14px', text: 'Змінити', onclick: showWelcome }) : null)]),
+    SHOW_MATERIALS ? h('h2', { text: 'Секретні матеріали' }) : null,
+    SHOW_MATERIALS ? carousel() : null,
     h('h2', { text: 'Місія' }),
     h('div', { class: 'card' }, [h('div', { class: 'row', style: 'justify-content:space-between' }, [h('b', { text: 'Прогрес: ' + starTotal + ' з ' + LEVELS.length * 3 + ' зірок' }), h('span', { class: 'muted', text: pct + '%' })]), h('div', { class: 'xp', style: 'margin-top:8px' }, [h('i', { style: 'width:' + pct + '%' })])]),
     h('div', { class: 'grid' }, cards),
     h('div', { class: 'row', style: 'margin-top:12px' }, [
       h('button', { class: 'btn', text: t.all ? 'Моя оцінка' : 'Підсумок', onclick: showSummary }),
       h('button', { class: 'btn alt', text: 'Таблиця лідерів', onclick: function () { showBoard(state.cls || CLASSES[0]); } })]),
-    h('h2', { text: 'Відео' }),
-    h('div', { class: 'vids' }, VIDEOS.map(function (v) { return h('a', { class: 'vid', href: v.url, target: '_blank', rel: 'noopener noreferrer' }, [h('span', { class: 'play' }), h('span', {}, [h('b', { text: v.title }), h('small', { text: v.note })])]); })),
-    h('footer', {}, [h('div', { class: 'credit', text: 'Гру створив учитель інформатики Вовненко Ярослав Віталійович' }), h('div', { style: 'margin-top:6px', text: 'Результати зберігаються на цьому пристрої' + (apiEnabled() ? ' і надсилаються вчителю.' : '. Таблиця лідерів поки не підключена.') }),
-      h('div', { style: 'margin-top:8px' }, [h('a', { href: '#admin', text: 'Для вчителя' }), ' · ', h('a', { href: '#', text: 'Почати спочатку', onclick: function (e) { e.preventDefault(); if (confirm('Стерти всі результати на цьому пристрої?')) { state.stars = {}; state.scores = {}; saveState(); showMenu(); } } })])])
+    SHOW_MATERIALS ? h('h2', { text: 'Відео' }) : null,
+    SHOW_MATERIALS ? h('div', { class: 'vids' }, VIDEOS.map(function (v) { return h('a', { class: 'vid', href: v.url, target: '_blank', rel: 'noopener noreferrer' }, [h('span', { class: 'play' }), h('span', {}, [h('b', { text: v.title }), h('small', { text: v.note })])]); })) : null,
+    h('footer', {}, [h('div', { class: 'credit', text: 'Гру створив учитель інформатики Вовненко Ярослав Віталійович' }), h('div', { style: 'margin-top:6px', text: (apiEnabled() ? 'Результат автоматично надсилається вчителю.' : 'Таблиця лідерів поки не підключена.') }),
+      h('div', { style: 'margin-top:8px' }, [h('a', { href: '#admin', text: 'Для вчителя' })])])
   ]);
 }
 
 function startLevel(l) {
   if (!profileOk()) { showWelcome('Спочатку заповни досьє агента: ім\'я, прізвище та клас.'); return; }
+  if (state.scores[l.id] != null) { showMenu('Цей рівень уже пройдено, повторно проходити його не можна.'); return; }
   stopTimers();
+  state.scores[l.id] = 0; state.stars[l.id] = 0; saveState();
   l.run(function (score) { finishLevel(l, score); });
 }
 
 function finishLevel(l, score) {
   var st = starsFor(score, l.max);
-  state.scores[l.id] = Math.max(score, state.scores[l.id] != null ? state.scores[l.id] : 0);
-  state.stars[l.id] = Math.max(st, state.stars[l.id] || 0);
+  state.scores[l.id] = score;
+  state.stars[l.id] = st;
   saveState();
   var t = totals(), idx = LEVELS.indexOf(l), next = LEVELS[idx + 1];
-  var msg = st === 3 ? 'Бездоганно! Ти справжній агент!' : st === 2 ? 'Гарна робота! Ще трохи — і буде максимум.' : st === 1 ? 'Рівень пройдено, але є що повторити. Глянь підказки в меню.' : 'Цього разу не вийшло. Спробуй ще раз, я в тебе вірю!';
+  var msg = st === 3 ? 'Бездоганно! Ти справжній агент!' : st === 2 ? 'Гарна робота! Рухаємося далі.' : st === 1 ? 'Рівень пройдено. Збери сили для наступного!' : 'Цей рівень не вдався, але місія триває. Далі!';
   if (st === 3) confetti();
   var extra = t.all ? h('p', { class: 'muted', text: 'Усі рівні пройдено! Відкрий підсумок, щоб побачити оцінку й надіслати її вчителю.' }) : h('p', { class: 'muted', text: 'Пройдено рівнів: ' + t.done + ' з ' + LEVELS.length + '. Оцінка з\'явиться, коли пройдеш усі.' });
   render([
@@ -420,7 +426,6 @@ function finishLevel(l, score) {
     extra,
     h('div', { class: 'grid' }, [
       next ? h('button', { class: 'btn big', text: 'Далі: ' + next.title, onclick: function () { startLevel(next); } }) : h('button', { class: 'btn big', text: 'Підсумок і оцінка', onclick: showSummary }),
-      h('button', { class: 'btn alt big', text: 'Спробувати ще раз', onclick: function () { startLevel(l); } }),
       h('button', { class: 'btn alt big', text: 'Меню', onclick: function () { showMenu(); } })])
   ]);
 }
@@ -438,7 +443,7 @@ function showSummary() {
   if (grade >= 9) confetti();
   render([
     h('div', { class: 'card gradebox' }, [h('p', { class: 'muted', text: 'Агент ' + displayName() + ' · ' + state.cls }), h('div', { class: 'grade', text: grade + ' / 12' }), h('div', { class: 'rank', text: rank }), h('p', { text: 'Разом: ' + t.sum + ' з ' + t.max + ' (' + Math.round(pct * 100) + '%)' })]),
-    mascot(grade >= 10 ? 'Неймовірно! Інтернет врятовано, а ти — герой!' : grade >= 7 ? 'Круто! Місію виконано, але зірок можна зібрати більше.' : 'Місію пройдено. Перечитай підказки в меню й спробуй покращити результат!', grade >= 7 ? 'wow' : 'happy'),
+    mascot(grade >= 10 ? 'Неймовірно! Інтернет врятовано, а ти — герой!' : grade >= 7 ? 'Круто! Місію виконано, ти молодець!' : 'Місію завершено. Повтори матеріал підручника, і наступного разу вийде краще!', grade >= 7 ? 'wow' : 'happy'),
     h('div', { class: 'card' }, rows), status, h('div', { class: 'grid' }, [h('button', { class: 'btn big', text: 'До меню', onclick: function () { showMenu(); } }), h('button', { class: 'btn alt big', text: 'Таблиця лідерів', onclick: function () { showBoard(state.cls); } })]), h('div', { style: 'height:12px' }), boardBox
   ]);
   if (!apiEnabled()) { status.textContent = 'Таблиця вчителя ще не підключена, результат не надіслано. Зроби знімок цього екрана для вчителя.'; return; }
@@ -529,8 +534,8 @@ function playFacts(done) {
     locked = false; var q = qs[i], fb = h('div', { class: 'fb', 'aria-live': 'polite' });
     function answer(val) {
       if (locked) return; locked = true; var ok = val === q[1]; if (ok) score++;
-      fb.className = 'fb ' + (ok ? 'ok' : 'bad'); fb.textContent = (ok ? 'Вірно! ' : 'Ні. ') + q[2]; mas.say(ok ? 'Супер, так тримати!' : 'Нічого, запам\'ятай це правило!', ok ? 'wow' : 'sad');
-      setTimeout(function () { i++; if (i >= qs.length) done(score); else show(); }, 1600);
+      fb.textContent = 'Відповідь прийнято.';
+      setTimeout(function () { i++; if (i >= qs.length) done(score); else show(); }, 700);
     }
     box.innerHTML = '';
     [h('div', { class: 'muted', text: 'Питання ' + (i + 1) + ' з ' + qs.length + ' · правильно: ' + score }),
@@ -558,11 +563,9 @@ function playPath(done) {
   }
   function check() {
     attempts++; var good = 0; picked.forEach(function (idx, p) { if (idx === p) good++; }); best = Math.max(best, good);
-    if (good === steps.length) { fb.className = 'fb ok'; fb.textContent = 'Усе вірно! Шлях пройдено.'; setTimeout(function () { done(good); }, 1200); return; }
-    if (attempts >= 2) { fb.className = 'fb bad'; fb.textContent = 'На місці ' + good + ' з ' + steps.length + '. Порядок: ' + steps.map(function (s, k) { return (k + 1) + ') ' + s[0]; }).join('; ') + '.'; setTimeout(function () { done(best); }, 6500); return; }
-    fb.className = 'fb bad'; fb.textContent = 'На місці ' + good + ' з ' + steps.length + ' кроків. Спробуй ще раз, це остання спроба!'; picked = []; draw();
+    fb.textContent = 'Відповідь прийнято.'; controls.innerHTML = ''; setTimeout(function () { done(good); }, 700);
   }
-  render([levelTop('Шлях сторінки'), h('p', { class: 'lead', text: 'Натискай кроки в порядку, у якому вони відбуваються. Повторне натискання знімає вибір. Є дві спроби.' }), list, h('div', { style: 'height:10px' }), controls, fb]); draw();
+  render([levelTop('Шлях сторінки'), h('p', { class: 'lead', text: 'Натискай кроки в порядку, у якому вони відбуваються. Повторне натискання знімає вибір. Спроба одна.' }), list, h('div', { style: 'height:10px' }), controls, fb]); draw();
 }
 
 /* ===== Рівень 3. Знайди пару ===== */
@@ -581,7 +584,7 @@ function playPairs(done) {
   chosen.forEach(function (p, i) { cards.push({ id: i, text: p[0], icon: p[2], kind: 't' }); cards.push({ id: i, text: p[1], kind: 'd' }); });
   cards = shuffle(cards);
   var first = null, mistakes = 0, matched = 0, busy = false;
-  var grid = h('div', { class: 'grid', style: 'grid-template-columns: repeat(2, 1fr)' }), info = h('div', { class: 'muted' });
+  var colL = h('div', { class: 'grid' }), colR = h('div', { class: 'grid' }), grid = h('div', { style: 'display:grid;grid-template-columns:1fr 1.4fr;gap:10px;align-items:start' }, [colL, colR]), info = h('div', { class: 'muted' });
   function upd() { info.textContent = 'Знайдено пар: ' + matched + ' з ' + chosen.length + ' · помилок: ' + mistakes; }
   cards.forEach(function (c) {
     var el = h('button', { class: 'tile' + (c.kind === 't' ? ' col' : ''), onclick: function () {
@@ -593,9 +596,9 @@ function playPairs(done) {
         if (matched === chosen.length) setTimeout(function () { done(Math.max(0, chosen.length - mistakes)); }, 900);
       } else { mistakes++; busy = true; a.classList.add('wrong'); b.classList.add('wrong'); upd(); setTimeout(function () { [a, b].forEach(function (x) { x.classList.remove('wrong'); x.classList.remove('sel'); }); busy = false; }, 600); }
     } }, c.kind === 't' ? [ico(c.icon, '', '#f472b6'), h('b', { text: c.text })] : [h('span', { text: c.text })]);
-    el._c = c; grid.appendChild(el);
+    el._c = c; (c.kind === 't' ? colL : colR).appendChild(el);
   });
-  render([levelTop('Знайди пару'), h('p', { class: 'lead', text: 'Натисни на картку з малюнком, потім на її значення. Кожна помилка забирає один бал.' }), info, grid]); upd();
+  render([levelTop('Знайди пару'), h('p', { class: 'lead', text: 'Ліворуч пристрої й терміни, праворуч їх описи. Натисни на картку ліворуч, потім на її опис праворуч. Кожна помилка забирає один бал.' }), info, grid]); upd();
 }
 
 /* ===== Рівень 4. Сортувальник ===== */
@@ -651,7 +654,7 @@ function playBlitz(done) {
     var q = qs[i], bar = h('i'), fb = h('div', { class: 'fb', 'aria-live': 'polite' });
     function answer(val, timeout) {
       if (locked) return; locked = true; stopTimers(); var ok = !timeout && val === q[1]; if (ok) score++; else lives--;
-      fb.className = 'fb ' + (ok ? 'ok' : 'bad'); fb.textContent = ok ? 'Так!' : (timeout ? 'Час вийшов. ' : 'Ні. ') + 'Правильна відповідь: ' + (q[1] ? 'правда' : 'неправда') + '.'; setTimeout(next, 1100);
+      fb.textContent = timeout ? 'Час вийшов.' : 'Відповідь прийнято.'; setTimeout(next, 700);
     }
     var hearts = ''; for (var k = 0; k < 3; k++) hearts += k < lives ? '♥ ' : '♡ ';
     box.innerHTML = '';
