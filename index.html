@@ -633,6 +633,8 @@ function useTest(id) {
     });
   }
   TEST = T; LEVELS = T._levels; loadTestState();
+  // Вчитель у режимі перегляду «сидить» у першому класі тієї паралелі, чию контрольну відкрив
+  if (isTeacher() && gradeOf(state.cls) !== T.grade) { var tc = CLASSES.filter(function (c) { return gradeOf(c) === T.grade; })[0]; if (tc) state.cls = tc; }
   return true;
 }
 /* Яку контрольну відкрити: вчитель обирає сам, учень отримує активну для своєї паралелі */
