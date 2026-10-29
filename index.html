@@ -750,7 +750,7 @@ function showWelcome(msg, edit) {
     mascot(TEST && TEST.intro ? TEST.intro : 'Привіт! Я Біт, твій напарник. Заповни досьє, і вирушаймо на місію!', 'wow'),
     h('div', { class: 'card' }, tips.map(function (t) { return h('div', { style: 'margin-bottom:10px' }, [h('b', { text: t[0] }), h('p', { class: 'muted', style: 'margin:2px 0 0', text: t[1] })]); })),
     msg ? h('div', { class: 'warn', text: msg }) : null,
-    h('div', { class: 'card' }, [h('b', { text: 'Досьє агента' }), classChip, h('div', { class: 'row', style: 'margin-top:10px' }, [first, last]),
+    h('div', { class: 'card' }, [h('b', { text: 'Досьє агента' }), h('div', { class: 'row', style: 'margin-top:10px' }, [first, last]),
       h('b', { style: 'display:block;margin-top:14px', text: 'Збери аватарку' }), picker, err, btn]),
     h('footer', {}, [h('div', { class: 'credit', text: 'Гру створив учитель інформатики Вовненко Ярослав Віталійович' })])
   ]);
