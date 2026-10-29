@@ -181,12 +181,13 @@ function doPost(e) {
 
 function doGet(e) {
   var p = e.parameter || {};
+  if (p.action === 'auth') { Utilities.sleep(300); return out_({ ok: p.key === ADMIN_KEY }); }
   if (p.action === 'status') return out_({ review: props_().getProperty('review') === '1', round: Number(props_().getProperty('round')) || 1 });
   var cls = p['class'];
   if (!CLASS_RE.test(String(cls))) return out_({ error: 'bad class' });
   if (p.action === 'live' || p.action === 'tv') {
-    // live — для вчителя (з ключем, повні прізвища й виходи); tv — для екрана в класі (лише ім'я та прогрес)
-    if (p.action === 'live' && p.key !== ADMIN_KEY) return out_({ error: 'wrong key' });
+    // live — для панелі вчителя (виходи зі сторінки), tv — для екрана в класі (без виходів). Обидва лише з ключем вчителя.
+    if (p.key !== ADMIN_KEY) return out_({ error: 'wrong key' });
     var live = progRows_().filter(function (r) { return r[1] === cls; }).map(function (r) {
       return { t: Number(r[13]) || new Date(r[0]).getTime(), ts: Number(r[12]) || 0, last: strip_(r[2]), first: strip_(r[3]), pct: Number(r[4]) || 0, done: String(r[5]), now: strip_(r[6]), leaves: Number(r[7]) || 0, away: Number(r[8]) || 0, fin: r[9] === 'так', out: r[10] === 'так', av: av_(r[11]) };
     });

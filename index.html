@@ -353,6 +353,8 @@
   .teacherbar b { font-family: var(--display); color: var(--yellow); }
   .teacherbar div div { color: var(--ink); font-size: .92rem; margin-top: 2px; }
   .teacherbar > div { flex: 1 1 220px; }
+  .login { max-width: 440px; margin: 8vh auto 0; display:grid; gap: 12px; }
+  .login input { width: 100%; }
   @media (max-width: 420px) { body { font-size: 16.5px; } .slide { flex-basis: 90%; } .grade { font-size: 3.8rem; } .tabs .btn { font-size: .85rem; } .lv b { font-size: .92rem; } .lv .stars { font-size: 1rem; } }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
@@ -877,30 +879,56 @@ document.addEventListener('visibilitychange', function () { if (document.hidden)
 window.addEventListener('blur', function () { if (!document.hidden) markHidden(true); });
 window.addEventListener('focus', markBack);
 
+/* ===== Вхід для вчителя: без підтвердженого пароля панель і телевізор не відкриваються ===== */
+function staffAuthed() { return sstore('imi_auth') === '1' && !!sstore('imi_key'); }
+function staffLogout(msg) { try { sessionStorage.removeItem('imi_auth'); sessionStorage.removeItem('imi_key'); } catch (e) {} stopAdminTimer(); if (msg) toast(msg, 'bad'); route(); }
+function showStaffLogin() {
+  stopAdminTimer(); document.body.classList.remove('tvmode');
+  var tv = (location.hash || '').indexOf('#tv') === 0;
+  var key = h('input', { type: 'password', placeholder: 'Пароль вчителя', autocomplete: 'current-password', 'aria-label': 'Пароль вчителя' });
+  var btn = h('button', { class: 'btn big', text: 'Увійти', onclick: login });
+  key.addEventListener('keydown', function (e) { if (e.key === 'Enter') login(); });
+  function login() {
+    if (!key.value) { toast('Введи пароль вчителя.', 'bad'); return; }
+    if (!apiEnabled()) { toast('Таблиця не підключена (немає API_URL).', 'bad'); return; }
+    btn.disabled = true;
+    apiGet({ action: 'auth', key: key.value }).then(function (r) {
+      btn.disabled = false;
+      if (r && r.ok) { sstore('imi_key', key.value); sstore('imi_auth', '1'); toast('Вхід виконано.', 'ok'); route(); }
+      else { key.value = ''; key.focus(); toast('Неправильний пароль.', 'bad'); }
+    }).catch(function () { btn.disabled = false; toast('Немає зв\'язку. Перевір інтернет.', 'bad'); });
+  }
+  render([h('div', { class: 'topbar' }, [h('button', { class: 'btn alt', text: '‹ До гри', onclick: function () { location.hash = ''; route(); } }), h('b', { text: tv ? 'Екран для телевізора' : 'Вхід для вчителя' })]),
+    h('div', { class: 'card login' }, [h('h2', { style: 'margin-top:0', text: 'Лише для вчителя' }), h('p', { class: 'muted', text: 'Щоб відкрити ' + (tv ? 'екран для телевізора' : 'панель вчителя') + ', введи пароль.' }), key, btn])]);
+  setTimeout(function () { key.focus(); }, 50);
+}
+
 /* ===== Панель вчителя (#admin) з вкладками ===== */
 var adminTimer = null;
 function stopAdminTimer() { if (adminTimer) { clearInterval(adminTimer); adminTimer = null; } }
 function ago(ms) { var s = Math.max(0, Math.round(ms / 1000)); return s < 45 ? 'щойно' : s < 3600 ? Math.round(s / 60) + ' хв тому' : Math.round(s / 3600) + ' год тому'; }
-function adminErr(e) { return e === 'wrong key' ? 'Неправильний ключ вчителя.' : e === 'bad class' ? 'Невідомий клас.' : 'Помилка: ' + (e || 'немає відповіді') + '.'; }
+function adminErr(e) { if (e === 'wrong key') { setTimeout(function () { staffLogout('Пароль змінився, увійди знову.'); }, 0); }
+  return adminErr0(e); }
+function adminErr0(e) { return e === 'wrong key' ? 'Неправильний ключ вчителя.' : e === 'bad class' ? 'Невідомий клас.' : 'Помилка: ' + (e || 'немає відповіді') + '.'; }
 function showAdmin(cls, tab) {
   stopAdminTimer();
   cls = cls || sstore('imi_acls') || CLASSES[0]; tab = tab || sstore('imi_atab') || 'live';
   sstore('imi_acls', cls); sstore('imi_atab', tab);
-  var box = h('div'), key = h('input', { type: 'password', placeholder: 'Ключ вчителя', value: sstore('imi_key') || '', autocomplete: 'off', 'aria-label': 'Ключ вчителя' });
-  function k() { return key.value; }
+  var box = h('div');
+  function k() { return sstore('imi_key') || ''; }
   function act(btn, req, okText, after) {
     if (!apiEnabled()) { toast('Таблиця не підключена (немає API_URL).', 'bad'); return; }
     if (btn) btn.disabled = true;
     req().then(function (x) {
       if (btn) btn.disabled = false;
-      if (x && x.ok) { if (okText) toast(okText, 'ok'); if (after) after(); } else toast(adminErr(x && x.error), 'bad');
+      if (x && x.ok) { if (okText) toast(okText, 'ok'); if (after) after(); } else if (x && x.error === 'wrong key') staffLogout('Пароль змінився, увійди знову.'); else toast(adminErr(x && x.error), 'bad');
     }).catch(function () { if (btn) btn.disabled = false; toast('Немає зв\'язку з таблицею. Перевір інтернет.', 'bad'); });
   }
   function go(c, t) { showAdmin(c, t); }
   var TABS = [['live', 'Прогрес'], ['results', 'Результати'], ['settings', 'Розбір і налаштування']];
   var tabs = h('div', { class: 'seg', role: 'tablist' }, TABS.map(function (t) { return h('button', { class: 'seg-b' + (t[0] === tab ? ' on' : ''), role: 'tab', 'aria-selected': t[0] === tab ? 'true' : 'false', text: t[1], onclick: function () { go(cls, t[0]); } }); }));
-  var keyCard = h('div', { class: 'card' }, [h('div', { class: 'row' }, [key, h('button', { class: 'btn', text: 'Увійти', onclick: function () { sstore('imi_key', key.value); toast('Ключ збережено на цей сеанс.', 'ok'); go(cls, tab); } })])]);
-  var parts = [h('div', { class: 'topbar' }, [h('button', { class: 'btn alt', text: '‹ Гра', onclick: function () { stopAdminTimer(); location.hash = ''; route(); } }), h('b', { text: 'Панель вчителя' })]), keyCard, tabs];
+  var parts = [h('div', { class: 'topbar' }, [h('button', { class: 'btn alt', text: '‹ Гра', onclick: function () { stopAdminTimer(); location.hash = ''; route(); } }), h('b', { text: 'Панель вчителя' }),
+    h('button', { class: 'btn alt', style: 'min-height:42px;padding:6px 14px', text: 'Вийти', onclick: function () { staffLogout(); location.hash = ''; route(); } })]), tabs];
   if (tab !== 'settings') parts.push(classTabs(cls, function (c) { go(c, tab); }));
   parts.push(box);
   render(parts);
@@ -986,7 +1014,7 @@ function showAdmin(cls, tab) {
     var tBtn = h('button', { class: 'btn ok', text: 'Пройти гру як вчитель', onclick: function () {
       if (!apiEnabled()) { enterTeacher(); return; }
       tBtn.disabled = true;
-      apiGet({ action: 'live', 'class': CLASSES[0], key: k() }).then(function (r) { tBtn.disabled = false; if (r && !r.error) enterTeacher(); else toast(adminErr(r && r.error), 'bad'); })
+      apiGet({ action: 'auth', key: k() }).then(function (r) { tBtn.disabled = false; if (r && r.ok) enterTeacher(); else staffLogout('Пароль змінився, увійди знову.'); })
         .catch(function () { tBtn.disabled = false; toast('Немає зв\'язку з таблицею.', 'bad'); });
     } });
     var roundBtn = h('button', { class: 'btn bad', text: 'Почати нову спробу', onclick: function () {
@@ -1023,7 +1051,8 @@ function showTV(cls) {
     clock.textContent = new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
     if (!apiEnabled()) { grid.innerHTML = ''; grid.appendChild(h('div', { class: 'tv-empty', text: 'Таблиця не підключена.' })); return; }
     busy = true;
-    apiGet({ action: 'tv', 'class': cls }).then(function (res) {
+    apiGet({ action: 'tv', 'class': cls, key: sstore('imi_key') || '' }).then(function (res) {
+      if (res && res.error === 'wrong key') { staffLogout('Пароль змінився, увійди знову.'); return; }
       busy = false;
       var rows = (res && res.rows) || [];
       var total = rows.reduce(function (s, r) { return s + r.pct; }, 0), avg = rows.length ? Math.round(total / rows.length) : 0, fin = rows.filter(function (r) { return r.fin; }).length;
@@ -1049,7 +1078,8 @@ function showTV(cls) {
 function route() {
   stopAdminTimer(); document.body.classList.remove('tvmode');
   var hs = decodeURIComponent(location.hash || '');
-  if (hs.indexOf('#tv') === 0) showTV(hs.split('=')[1]);
+  if ((hs.indexOf('#tv') === 0 || hs === '#admin') && !staffAuthed()) showStaffLogin();
+  else if (hs.indexOf('#tv') === 0) showTV(hs.split('=')[1]);
   else if (hs === '#admin') showAdmin();
   else if (profileOk() && sstore('imi_started')) showMenu(); else showWelcome();
 }
