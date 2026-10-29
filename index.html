@@ -1036,7 +1036,7 @@ function showSummary() {
   var status = h('div', { class: 'fb', 'aria-live': 'polite' }), boardBox = h('div');
   if (grade >= 9) confetti();
   render([
-    h('div', { class: 'card gradebox' }, [avatar(state.av, 'xl'), h('p', { class: 'muted', style: 'margin-top:8px', text: 'Агент ' + displayName() + ', ' + state.cls }), h('div', { class: 'grade', text: grade + ' / 12' }), h('div', { class: 'rank', text: rank }), h('p', { text: 'Разом: ' + t.sum + ' з ' + t.max + ' (' + Math.round(pct * 100) + '%)' })]),
+    h('div', { class: 'card gradebox' }, [avatar(state.av, 'xl'), h('p', { class: 'muted', style: 'margin-top:8px', text: isTeacher() ? 'Вчитель (перегляд), ' + TEST.label : 'Агент ' + displayName() + ', ' + state.cls }), h('div', { class: 'grade', text: grade + ' / 12' }), h('div', { class: 'rank', text: rank }), h('p', { text: 'Разом: ' + t.sum + ' з ' + t.max + ' (' + Math.round(pct * 100) + '%)' })]),
     mascot(grade >= 10 ? 'Неймовірно! Інтернет врятовано, а ти — герой!' : grade >= 7 ? 'Круто! Місію виконано, ти молодець!' : 'Місію завершено. Повтори матеріал підручника, і наступного разу вийде краще!', grade >= 7 ? 'wow' : 'happy'),
     h('div', { class: 'card' }, rows), status, h('div', { class: 'grid' }, [h('button', { class: 'btn big', text: 'До меню', onclick: function () { showMenu(); } }), h('button', { class: 'btn alt big', text: 'Таблиця лідерів', onclick: function () { showBoard(state.cls); } })]), h('div', { style: 'height:12px' }), boardBox
   ]);
@@ -1068,16 +1068,19 @@ function loadBoard(box, cls, mine) {
     var list = (res && res.rows) || []; box.innerHTML = '';
     var me = displayName(), body = h('tbody'), medals = ['1', '2', '3'];
     list.forEach(function (r, i) { body.appendChild(h('tr', { class: mine && !full && r.n === me ? 'me' : null }, [h('td', { class: 'medal', text: String(i + 1) }), h('td', {}, [h('span', { class: 'who' }, [avatar(r.av, 'sm'), h('span', { text: r.n })])]), h('td', { text: r.g + ' / 12' }), h('td', { text: String(r.s) })])); });
-    box.appendChild(h('div', { class: 'card' }, [h('h3', { text: 'Лідери ' + cls }), list.length ? h('table', { class: 'tbl' }, [h('thead', {}, [h('tr', {}, [h('th', { text: '№' }), h('th', { text: 'Агент' }), h('th', { text: 'Оцінка' }), h('th', { text: 'Бали' })])]), body]) : h('p', { class: 'muted', text: 'Поки що нікого немає. Ти можеш стати першим!' })]));
+    box.appendChild(h('div', { class: 'card' }, [h('h3', { text: 'Лідери ' + cls }), list.length ? h('table', { class: 'tbl' }, [h('thead', {}, [h('tr', {}, [h('th', { text: '№' }), h('th', { text: 'Агент' }), h('th', { text: 'Оцінка' }), h('th', { text: 'Бали' })])]), body]) : h('p', { class: 'muted', text: mine ? 'Поки що нікого немає. Ти можеш стати першим!' : 'Поки що нікого немає.' })]));
   }).catch(function () { box.innerHTML = ''; box.appendChild(h('div', { class: 'warn', text: 'Не вдалося завантажити таблицю лідерів.' })); });
 }
-function classTabs(cls, fn) { return h('div', { class: 'tabs' }, CLASSES.map(function (c) { return h('button', { class: 'btn alt' + (c === cls ? ' on' : ''), text: c, onclick: function () { fn(c); } }); })); }
+function classTabs(cls, fn, list) { return h('div', { class: 'tabs' }, (list || CLASSES).map(function (c) { return h('button', { class: 'btn alt' + (c === cls ? ' on' : ''), text: c, onclick: function () { fn(c); } }); })); }
 function showBoard() {
   /* Учень бачить лише свій клас: до інших класів у нього немає коду */
   var cls = state.cls, box = h('div');
-  render([h('div', { class: 'topbar' }, [h('button', { class: 'btn alt', text: '‹ Меню', onclick: function () { showMenu(); } }), h('b', { text: 'Таблиця лідерів' })]), box]);
+  /* Вчитель у режимі перегляду перемикає всі класи паралелі цієї контрольної */
+  var own = isTeacher() && TEST ? CLASSES.filter(function (c) { return gradeOf(c) === TEST.grade; }) : [], tabs = h('div');
+  render([h('div', { class: 'topbar' }, [h('button', { class: 'btn alt', text: '‹ Меню', onclick: function () { showMenu(); } }), h('b', { text: 'Таблиця лідерів' })]), tabs, box]);
   if (!apiEnabled()) { box.appendChild(h('div', { class: 'warn', text: 'Таблиця лідерів ще не підключена вчителем.' })); return; }
-  loadBoard(box, cls, true);
+  function pick(c) { if (own.length > 1) { tabs.innerHTML = ''; tabs.appendChild(classTabs(c, pick, own)); } loadBoard(box, c, !isTeacher()); }
+  pick(cls);
 }
 
 /* ===== Прогрес учня й виходи зі сторінки ===== */
