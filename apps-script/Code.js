@@ -30,6 +30,8 @@ function props_() { return PropertiesService.getScriptProperties(); }
 function num_(v, max) { v = Math.round(Number(v) || 0); return Math.max(0, Math.min(max, v)); }
 function gradeOf_(cls) { return String(parseInt(cls, 10)); }
 function okTest_(t) { return TEST_RE.test(String(t || '')); }
+/* Таблиця перетворює «5-1» на дату, тому код контрольної пишемо як текст (з апострофом) і читаємо обережно */
+function tval_(v) { return (v instanceof Date || typeof v === 'number') ? '' : strip_(v); }
 
 /* Активні контрольні: { "5": "5-1", "6": "", "7": "" } */
 function active_() { try { return JSON.parse(props_().getProperty('active') || '{}') || {}; } catch (x) { return {}; } }
@@ -93,7 +95,7 @@ function progRows_() {
 function progDirty_() { CacheService.getScriptCache().remove('prog'); }
 function progFind_(sh, cls, test, last, first) {
   var data = rows_(sh);
-  for (var i = 0; i < data.length; i++) if (data[i][1] === cls && String(data[i][C_TEST]) === test && same_(data[i][2], last) && same_(data[i][3], first)) return i + 2;
+  for (var i = 0; i < data.length; i++) if (data[i][1] === cls && tval_(data[i][C_TEST]) === test && same_(data[i][2], last) && same_(data[i][3], first)) return i + 2;
   return 0;
 }
 
@@ -107,7 +109,7 @@ function migrate_() {
   var ps = progSheet_(), n = ps.getLastRow();
   if (n > 1) {
     var rng = ps.getRange(2, C_TEST + 1, n - 1, 1), vals = rng.getValues();
-    rng.setValues(vals.map(function (v) { return [v[0] ? v[0] : LEGACY_TEST]; }));
+    rng.setValues(vals.map(function (v) { return [tval_(v[0]) ? "'" + tval_(v[0]) : "'" + LEGACY_TEST]; }));
   }
   if (pr.getProperty('round')) pr.setProperty('round:' + LEGACY_TEST, pr.getProperty('round'));
   if (pr.getProperty('review')) pr.setProperty('review:' + LEGACY_TEST, pr.getProperty('review'));
@@ -160,7 +162,7 @@ function doPost(e) {
       // Запити можуть прийти не в тому порядку: старіші за збережений ігноруємо
       if (at && ts && Number(ps.getRange(at, 13).getValue()) > ts) return out_({ ok: true, stale: true });
       var prow = [new Date(), d.cls, pl, pf, num_(d.pct, 100), num_(d.done, 100) + ' з ' + num_(d.total, 100), clean_(d.now, 60),
-        num_(d.leaves, 100000), num_(d.away, 1000000), d.fin ? 'так' : '', d.out ? 'так' : '', av_(d.av), ts, Date.now(), test];
+        num_(d.leaves, 100000), num_(d.away, 1000000), d.fin ? 'так' : '', d.out ? 'так' : '', av_(d.av), ts, Date.now(), "'" + test];
       if (at) ps.getRange(at, 1, 1, PHEAD.length).setValues([prow]); else ps.appendRow(prow);
       progDirty_();
       return out_({ ok: true });
@@ -229,7 +231,7 @@ function doPost(e) {
       var t = String(d.test), ss = SpreadsheetApp.getActiveSpreadsheet();
       ss.getSheets().forEach(function (x) { var nm = x.getName(); if (nm.slice(-(SEP + t).length) === SEP + t) { var lr = x.getLastRow(); if (lr > 1) x.deleteRows(2, lr - 1); } });
       var ps4 = progSheet_(), pd4 = rows_(ps4);
-      for (var r4 = pd4.length - 1; r4 >= 0; r4--) if (String(pd4[r4][C_TEST]) === t) ps4.deleteRow(r4 + 2);
+      for (var r4 = pd4.length - 1; r4 >= 0; r4--) if (tval_(pd4[r4][C_TEST]) === t) ps4.deleteRow(r4 + 2);
       var round = (Number(props_().getProperty('round:' + t)) || 1) + 1;
       props_().setProperty('round:' + t, String(round)); props_().setProperty('review:' + t, '0'); progDirty_();
       return out_({ ok: true, round: round });
@@ -249,7 +251,7 @@ function doPost(e) {
       var sh3 = sheet_(d.cls, dt), n = sh3.getLastRow();
       if (n > 1) sh3.deleteRows(2, n - 1);
       var ps3 = progSheet_(), pdata = rows_(ps3);
-      for (var q = pdata.length - 1; q >= 0; q--) if (pdata[q][1] === d.cls && String(pdata[q][C_TEST]) === dt) ps3.deleteRow(q + 2);
+      for (var q = pdata.length - 1; q >= 0; q--) if (pdata[q][1] === d.cls && (tval_(pdata[q][C_TEST]) === dt || !okTest_(tval_(pdata[q][C_TEST])))) ps3.deleteRow(q + 2);
       progDirty_();
       return out_({ ok: true });
     }
@@ -285,7 +287,7 @@ function doGet(e) {
   if (p.action === 'live' || p.action === 'tv') {
     // live — для панелі вчителя (виходи зі сторінки), tv — для екрана в класі (без виходів). Обидва лише з ключем вчителя.
     if (p.key !== ADMIN_KEY) return out_({ error: 'wrong key' });
-    var live = progRows_().filter(function (r) { return r[1] === cls && String(r[C_TEST]) === test; }).map(function (r) {
+    var live = progRows_().filter(function (r) { return r[1] === cls && tval_(r[C_TEST]) === test; }).map(function (r) {
       return { t: Number(r[13]) || new Date(r[0]).getTime(), ts: Number(r[12]) || 0, last: strip_(r[2]), first: strip_(r[3]), pct: Number(r[4]) || 0, done: String(r[5]), now: strip_(r[6]), leaves: Number(r[7]) || 0, away: Number(r[8]) || 0, fin: r[9] === 'так', out: r[10] === 'так', av: av_(r[11]) };
     });
     // Накладаємо свіжіші проміжні оновлення з кешу
