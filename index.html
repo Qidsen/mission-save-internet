@@ -1390,7 +1390,7 @@ function postView(it, cur, pick) {
 /* ---------- Сторінки рівня ----------
    Рівень складається зі сторінок (частин). Між ними можна ходити «Назад» і «Далі»,
    а відповіді фіксуються лише кнопкою «Завершити рівень». */
-function pgChoice(Q, lead) { return { type: 'choice', Q: Q, lead: lead }; }
+function pgChoice(Q, lead, fig) { return { type: 'choice', Q: Q, lead: lead, fig: fig }; }
 function pgLabel(cfg) { return { type: 'label', cfg: cfg, lead: cfg.lead }; }
 function pgSort(R) { return { type: 'sort', R: R }; }
 function pgOrder(R) { return { type: 'order', R: R, lead: 'Натискай картки по черзі, щоб пронумерувати їх. Повторне натискання прибирає номер. Чим менше карток не на своєму місці, тим більше балів.' }; }
@@ -1429,6 +1429,8 @@ var PAGE = {
     },
     render: function (pg, st, save) {
       var box = h('div'), lastHead = null, items = choiceItems(pg, st);
+      /* Малюнок з підручника над питаннями (fig: { img, alt, caption }) */
+      if (pg.fig) box.appendChild(h('figure', { class: 'paper lead-fig' }, [h('img', { src: pg.fig.img, alt: pg.fig.alt || '', loading: 'lazy' }), h('figcaption', { text: pg.fig.caption || '' })]));
       st.qord.forEach(function (k, pos) {
         var it = items[k];
         if (it.head && it.head !== lastHead) { lastHead = it.head; box.appendChild(h('h3', { class: 'qhead', text: it.head })); }
@@ -1639,6 +1641,7 @@ function playBlitz(done, l) {
 </script>
 <!-- Контрольні. Нова контрольна = новий файл у папці tests і рядок тут. -->
 <script src="tests/5-1.js"></script>
+<script src="tests/6-1.js"></script>
 <script>
 'use strict';
 /* Стан із сервера: активні контрольні, номери спроб, відкриті розбори */
