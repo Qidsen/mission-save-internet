@@ -254,6 +254,12 @@
   .bigtag { font-family: var(--display); font-weight: 800; font-size: 1.15rem; min-width: 46px; color: var(--cyan); }
   .hearts span { font-size: 1.35rem; color: rgba(255,255,255,.2); margin-left: 2px; }
   .hearts span.on { color: var(--red); }
+  #toasts { position: fixed; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 60; display:flex; flex-direction: column; gap: 8px; width: min(440px, calc(100% - 32px)); pointer-events: none; }
+  .toast { display:flex; align-items:center; gap: 10px; background: #fff; color: #1b1740; font-weight: 700; padding: 12px 16px; border-radius: 16px; box-shadow: 0 12px 30px rgba(0,0,0,.4); opacity: 0; transform: translateY(12px); transition: opacity .25s, transform .25s; }
+  .toast.show { opacity: 1; transform: none; }
+  .toast-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; background: var(--cyan); }
+  .toast.ok .toast-dot { background: #22b864; } .toast.bad .toast-dot { background: #e0435f; }
+  .toast.bad { border-left: 5px solid #e0435f; } .toast.ok { border-left: 5px solid #22b864; } .toast.info { border-left: 5px solid var(--cyan); }
   @media (max-width: 420px) { body { font-size: 16.5px; } .slide { flex-basis: 90%; } .grade { font-size: 3.8rem; } .tabs .btn { font-size: .85rem; } .lv b { font-size: .92rem; } .lv .stars { font-size: 1rem; } }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
@@ -304,6 +310,15 @@ function h(tag, attrs, children) {
 }
 function store(key, val) { try { if (val === undefined) return localStorage.getItem(key); localStorage.setItem(key, val); } catch (e) { return null; } }
 function sstore(key, val) { try { if (val === undefined) return sessionStorage.getItem(key); sessionStorage.setItem(key, val); } catch (e) { return null; } }
+/* Спливаючі повідомлення */
+function toast(text, kind) {
+  var wrap = $('#toasts'); if (!wrap) { wrap = h('div', { id: 'toasts', role: 'status', 'aria-live': 'polite' }); document.body.appendChild(wrap); }
+  if (kind === 'ok') Array.prototype.forEach.call(wrap.querySelectorAll('.toast.bad'), function (x) { x.parentNode.removeChild(x); });
+  var t = h('div', { class: 'toast ' + (kind || 'info') }, [h('span', { class: 'toast-dot', 'aria-hidden': 'true' }), h('span', { text: text })]);
+  wrap.appendChild(t);
+  requestAnimationFrame(function () { t.classList.add('show'); });
+  setTimeout(function () { t.classList.remove('show'); setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 300); }, 3800);
+}
 function starsFor(score, max) { var r = max ? score / max : 0; return r >= 0.9 ? 3 : r >= 0.6 ? 2 : r > 0 ? 1 : 0; }
 function starsHtml(n, animate) {
   var s = h('span', { class: 'stars', 'aria-label': n + ' з 3 зірок' });
@@ -482,8 +497,8 @@ function showWelcome(msg) {
   var cls = h('select', { 'aria-label': 'Клас' }, [h('option', { value: '', text: 'Обери клас' })].concat(CLASSES.map(function (c) { return h('option', { value: c, text: c, selected: state.cls === c ? 'selected' : null }); })));
   var err = h('div', { class: 'fb bad', 'aria-live': 'polite' });
   function go() {
-    if (!first.value.trim() || !last.value.trim() || !cls.value) { err.textContent = 'Заповни ім\'я, прізвище та обери клас, щоб почати місію.'; return; }
-    state.first = first.value.trim(); state.last = last.value.trim(); state.cls = cls.value; saveState(); sstore('imi_started', '1'); showMenu();
+    if (!first.value.trim() || !last.value.trim() || !cls.value) { err.textContent = 'Заповни ім\'я, прізвище та обери клас, щоб почати місію.'; toast('Заповни ім\'я, прізвище та обери клас.', 'bad'); return; }
+    state.first = first.value.trim(); state.last = last.value.trim(); state.cls = cls.value; saveState(); sstore('imi_started', '1'); showMenu(); toast('Місію розпочато! Успіху, агенте ' + state.first + '!', 'ok');
   }
   var tips = [['Що це?', 'Контрольна робота з інформатики за § 1–5 підручника: сучасні технології, будова комп\'ютера, інформаційні системи, сигнали й мережі, пошук і перевірка інформації. Це гра з ' + LEVELS.length + ' рівнів, розрахована на один урок. Не поспішай і уважно читай завдання.'],
     ['Правила', 'Кожен рівень проходиться лише один раз, повернутися або перепройти його не можна. Якщо браузер закриється або зникне інтернет, відкрий сторінку знову: гра продовжиться з місця зупинки, а зроблені помилки збережуться. Підказок немає, працюй самостійно.'],
@@ -543,6 +558,7 @@ function startLevel(l) {
   if (!profileOk()) { showWelcome('Спочатку заповни досьє агента: ім\'я, прізвище та клас.'); return; }
   if (state.scores[l.id] != null) { showMenu('Цей рівень уже пройдено, повторно проходити його не можна.'); return; }
   stopTimers(); stopConfetti(); CUR = l;
+  if (getProg(l.id)) toast('Продовжуємо рівень з місця зупинки. Твої відповіді збережено.', 'info');
   l.run(function (score) { finishLevel(l, score); });
 }
 
@@ -597,8 +613,8 @@ function showReview() {
   box.appendChild(h('div', { class: 'muted', text: 'Перевіряю, чи вчитель відкрив розбір…' }));
   apiGet({ action: 'status' }).then(function (r) {
     if (r && r.review) draw();
-    else { box.innerHTML = ''; box.appendChild(h('div', { class: 'warn', text: 'Розбір помилок ще закрито. Вчитель відкриє його, коли весь клас завершить роботу. Не обговорюй відповіді з іншими до цього часу.' })); }
-  }).catch(function () { box.innerHTML = ''; box.appendChild(h('div', { class: 'warn', text: 'Не вдалося перевірити доступ до розбору. Спробуй пізніше.' })); });
+    else { box.innerHTML = ''; box.appendChild(h('div', { class: 'warn', text: 'Розбір помилок ще закрито. Вчитель відкриє його, коли весь клас завершить роботу. Не обговорюй відповіді з іншими до цього часу.' })); toast('Розбір помилок поки закрито вчителем.', 'info'); }
+  }).catch(function () { box.innerHTML = ''; box.appendChild(h('div', { class: 'warn', text: 'Не вдалося перевірити доступ до розбору. Спробуй пізніше.' })); toast('Немає зв\'язку. Спробуй пізніше.', 'bad'); });
 }
 
 /* ===== Підсумок + надсилання ===== */
@@ -621,12 +637,12 @@ function showSummary() {
   var details = {}, starSum = 0; LEVELS.forEach(function (l) { details[l.id] = { t: l.title, s: state.scores[l.id], m: l.max }; starSum += state.stars[l.id] || 0; });
   var retry = h('button', { class: 'btn big', style: 'display:none;margin-bottom:12px', text: 'Надіслати ще раз', onclick: function () { send(); } });
   status.parentNode.insertBefore(retry, status.nextSibling);
-  function fail(txt) { status.className = 'fb bad'; status.textContent = txt + ' Твій результат збережено на цьому пристрої: перевір інтернет і натисни «Надіслати ще раз».'; retry.style.display = 'block'; }
+  function fail(txt) { status.className = 'fb bad'; status.textContent = txt + ' Твій результат збережено на цьому пристрої: перевір інтернет і натисни «Надіслати ще раз».'; retry.style.display = 'block'; toast('Результат не надіслано. Перевір інтернет і натисни «Надіслати ще раз».', 'bad'); }
   function send() {
     status.className = 'fb'; status.textContent = 'Надсилаю результат вчителю…'; retry.style.display = 'none';
     apiSubmit({ first: state.first.trim(), last: state.last.trim(), cls: state.cls, score: t.sum, max: t.max, grade: grade, stars: starSum, details: details })
       .then(function (r) {
-        if (r && r.ok) { status.className = 'fb ok'; status.textContent = r.unconfirmed ? 'Результат надіслано (підтвердження не отримано).' : 'Результат надіслано вчителю!'; return loadBoard(boardBox, state.cls, true); }
+        if (r && r.ok) { status.className = 'fb ok'; status.textContent = r.unconfirmed ? 'Результат надіслано (підтвердження не отримано).' : 'Результат надіслано вчителю!'; toast(r.duplicate ? 'Результат уже був у вчителя, зараховано перший.' : 'Результат надіслано вчителю!', 'ok'); return loadBoard(boardBox, state.cls, true); }
         fail('Не вдалося надіслати: ' + ((r && r.error) || 'невідома помилка') + '.');
       }).catch(function () { fail('Немає зв\'язку з таблицею.'); });
   }
@@ -655,43 +671,65 @@ function showBoard(cls) {
 /* ===== Панель вчителя (#admin) ===== */
 function showAdmin(cls) {
   cls = cls || CLASSES[0];
-  var box = h('div'), msg = h('div', { class: 'fb', 'aria-live': 'polite' });
+  var box = h('div');
   var key = h('input', { type: 'password', placeholder: 'Ключ вчителя', value: sstore('imi_key') || '', autocomplete: 'off', 'aria-label': 'Ключ вчителя' });
-  function load() {
-    sstore('imi_key', key.value); box.innerHTML = ''; msg.textContent = '';
-    if (!apiEnabled()) { msg.className = 'fb bad'; msg.textContent = 'Таблиця не підключена (немає API_URL).'; return; }
-    apiGet({ action: 'list', 'class': cls, key: key.value }).then(function (res) {
-      if (!res || res.error) { msg.className = 'fb bad'; msg.textContent = 'Помилка: ' + ((res && res.error) || 'немає відповіді'); return; }
-      var body = h('tbody');
-      (res.rows || []).forEach(function (r) {
-        body.appendChild(h('tr', {}, [h('td', { text: r.last + ' ' + r.first }), h('td', { text: r.g + ' / 12' }), h('td', { text: String(r.s) }),
-          h('td', {}, [h('button', { class: 'btn bad', style: 'min-height:40px;padding:6px 12px', text: 'Видалити', onclick: function () {
-            if (!confirm('Видалити результат: ' + r.last + ' ' + r.first + '?')) return;
-            apiPost({ action: 'delete', key: key.value, cls: cls, first: r.first, last: r.last }).then(function (x) { if (x && x.ok) { load(); } else { msg.className = 'fb bad'; msg.textContent = 'Помилка: ' + ((x && x.error) || '?'); } }).catch(function () { msg.className = 'fb bad'; msg.textContent = 'Немає зв\'язку.'; });
-          } })])]));
-      });
-      box.appendChild(h('div', { class: 'card' }, [h('h3', { text: cls + ': результатів ' + (res.rows || []).length }),
-        (res.rows || []).length ? h('table', { class: 'tbl' }, [h('thead', {}, [h('tr', {}, [h('th', { text: 'Учень' }), h('th', { text: 'Оцінка' }), h('th', { text: 'Бали' }), h('th', { text: '' })])]), body]) : h('p', { class: 'muted', text: 'Результатів немає.' }),
-        (res.rows || []).length ? h('button', { class: 'btn bad', text: 'Видалити весь клас ' + cls, onclick: function () {
-          if (!confirm('Видалити ВСІ результати класу ' + cls + '?')) return;
-          apiPost({ action: 'clear', key: key.value, cls: cls }).then(function (x) { if (x && x.ok) { load(); } else { msg.className = 'fb bad'; msg.textContent = 'Помилка: ' + ((x && x.error) || '?'); } });
-        } }) : null]));
-    }).catch(function () { msg.className = 'fb bad'; msg.textContent = 'Немає зв\'язку з таблицею.'; });
+  function errText(e) { return e === 'wrong key' ? 'Неправильний ключ вчителя.' : e === 'bad class' ? 'Невідомий клас.' : 'Помилка: ' + (e || 'немає відповіді') + '.'; }
+  /* Виконує дію вчителя: блокує кнопку, показує toast з результатом */
+  function act(btn, req, okText, after) {
+    if (!apiEnabled()) { toast('Таблиця не підключена (немає API_URL).', 'bad'); return; }
+    if (btn) btn.disabled = true;
+    req().then(function (x) {
+      if (btn) btn.disabled = false;
+      if (x && x.ok) { if (okText) toast(okText, 'ok'); if (after) after(); } else toast(errText(x && x.error), 'bad');
+    }).catch(function () { if (btn) btn.disabled = false; toast('Немає зв\'язку з таблицею. Перевір інтернет.', 'bad'); });
   }
+  function load(silent) {
+    sstore('imi_key', key.value);
+    if (!apiEnabled()) { toast('Таблиця не підключена (немає API_URL).', 'bad'); return; }
+    box.innerHTML = ''; box.appendChild(h('div', { class: 'muted', text: 'Завантажую результати…' }));
+    apiGet({ action: 'list', 'class': cls, key: key.value }).then(function (res) {
+      box.innerHTML = '';
+      if (!res || res.error) { toast(errText(res && res.error), 'bad'); return; }
+      var rows = res.rows || [], body = h('tbody');
+      if (!silent) toast(cls + ': завантажено результатів — ' + rows.length + '.', 'info');
+      rows.forEach(function (r) {
+        var del = h('button', { class: 'btn bad', style: 'min-height:40px;padding:6px 12px', text: 'Видалити', onclick: function () {
+          if (!confirm('Видалити результат: ' + r.last + ' ' + r.first + '?')) return;
+          act(del, function () { return apiPost({ action: 'delete', key: key.value, cls: cls, first: r.first, last: r.last }); }, 'Результат «' + r.last + ' ' + r.first + '» видалено.', function () { load(true); });
+        } });
+        body.appendChild(h('tr', {}, [h('td', { text: r.last + ' ' + r.first }), h('td', { text: r.g + ' / 12' }), h('td', { text: r.s + (r.m ? ' з ' + r.m : '') }), h('td', {}, [del])]));
+      });
+      var clearBtn = rows.length ? h('button', { class: 'btn bad', style: 'margin-top:12px', text: 'Видалити весь клас ' + cls, onclick: function () {
+        if (!confirm('Видалити ВСІ результати класу ' + cls + '?')) return;
+        act(clearBtn, function () { return apiPost({ action: 'clear', key: key.value, cls: cls }); }, 'Усі результати класу ' + cls + ' видалено.', function () { load(true); });
+      } }) : null;
+      box.appendChild(h('div', { class: 'card' }, [h('h3', { text: cls + ': результатів ' + rows.length }),
+        rows.length ? h('table', { class: 'tbl' }, [h('thead', {}, [h('tr', {}, [h('th', { text: 'Учень' }), h('th', { text: 'Оцінка' }), h('th', { text: 'Бали' }), h('th', { text: '' })])]), body]) : h('p', { class: 'muted', text: 'Результатів поки немає.' }),
+        clearBtn]));
+    }).catch(function () { box.innerHTML = ''; toast('Немає зв\'язку з таблицею. Перевір інтернет.', 'bad'); });
+  }
+  var showBtn = h('button', { class: 'btn', text: 'Показати', onclick: function () { load(false); } });
+  var openBtn = h('button', { class: 'btn ok', text: 'Відкрити розбір', onclick: function () { setReview(true, openBtn); } });
+  var closeBtn = h('button', { class: 'btn alt', text: 'Закрити розбір', onclick: function () { setReview(false, closeBtn); } });
   render([h('div', { class: 'topbar' }, [h('button', { class: 'btn alt', text: '‹ Гра', onclick: function () { location.hash = ''; showMenu(); } }), h('b', { text: 'Панель вчителя' })]),
-    h('div', { class: 'card' }, [h('div', { class: 'row' }, [key, h('button', { class: 'btn', text: 'Показати', onclick: load })]),
-      h('p', { class: 'muted', style: 'margin-top:8px', text: 'Ключ задано в налаштуваннях скрипта таблиці (ADMIN_KEY). Тут тільки вчитель бачить прізвища повністю й може видаляти результати.' })]),
+    h('div', { class: 'card' }, [h('div', { class: 'row' }, [key, showBtn]),
+      h('p', { class: 'muted', style: 'margin-top:8px', text: 'Тут тільки вчитель бачить прізвища повністю й може видаляти результати.' })]),
     h('div', { class: 'card' }, [h('b', { text: 'Розбір помилок для учнів' }), h('p', { class: 'muted', id: 'revstat', text: 'Статус: перевіряю…' }),
-      h('div', { class: 'row' }, [h('button', { class: 'btn ok', text: 'Відкрити розбір', onclick: function () { setReview(true); } }), h('button', { class: 'btn alt', text: 'Закрити розбір', onclick: function () { setReview(false); } })])]),
-    classTabs(cls, function (c) { showAdmin(c); }), msg, box,
+      h('div', { class: 'row' }, [openBtn, closeBtn])]),
+    classTabs(cls, function (c) { showAdmin(c); }), box,
     h('div', { class: 'card' }, [h('b', { text: 'На цьому пристрої' }), h('p', { class: 'muted', text: 'Щоб заново пройти гру під час тестування, очисти локальні результати.' }),
-      h('button', { class: 'btn alt', text: 'Очистити локальні результати', onclick: function () { state.stars = {}; state.scores = {}; saveState(); msg.className = 'fb ok'; msg.textContent = 'Локальні результати очищено.'; } })])]);
+      h('button', { class: 'btn alt', text: 'Очистити локальні результати', onclick: function () {
+        if (!confirm('Очистити результати й прогрес гри на цьому пристрої?')) return;
+        state.stars = {}; state.scores = {}; saveState();
+        try { localStorage.removeItem('imi_prog'); localStorage.removeItem('imi_review'); sessionStorage.removeItem('imi_started'); } catch (e) {}
+        toast('Результати й прогрес на цьому пристрої очищено.', 'ok');
+      } })])]);
   function revStatus() { if (!apiEnabled()) return; apiGet({ action: 'status' }).then(function (r) { var e = $('#revstat'); if (e) e.textContent = 'Статус: розбір ' + (r && r.review ? 'ВІДКРИТО для учнів' : 'закрито'); }).catch(function () {}); }
-  function setReview(v) {
-    apiPost({ action: 'setreview', key: key.value, value: v }).then(function (x) { if (x && x.ok) revStatus(); else { msg.className = 'fb bad'; msg.textContent = 'Помилка: ' + ((x && x.error) || '?'); } }).catch(function () { msg.className = 'fb bad'; msg.textContent = 'Немає зв\'язку.'; });
+  function setReview(v, btn) {
+    act(btn, function () { return apiPost({ action: 'setreview', key: key.value, value: v }); }, v ? 'Розбір помилок відкрито: учні вже можуть його переглянути.' : 'Розбір помилок закрито для учнів.', revStatus);
   }
   revStatus();
-  if (key.value) load();
+  if (key.value) load(true);
 }
 function route() { if (location.hash === '#admin') showAdmin(); else if (profileOk() && sstore('imi_started')) showMenu(); else showWelcome(); }
 window.addEventListener('hashchange', route);
@@ -893,7 +931,7 @@ function playSortG(done, id, title, ROUNDS, part) {
         all.forEach(function (x) { var okk = P.assign[x.i] === x.c; if (okk) P.score++; P.rows.push({ q: x.t, mine: R.cats[P.assign[x.i]], right: R.cats[x.c], ok: okk }); });
         P.r++; P.assign = {}; P.ord = null;
         if (P.r >= ROUNDS.length) { P.fin = true; setProg(id, P); saveReview(id, P.rows); done(P.score); return; }
-        setProg(id, P); round(); window.scrollTo(0, 0);
+        setProg(id, P); round(); window.scrollTo(0, 0); toast('Відповіді збережено. Наступне завдання!', 'ok');
       } }));
     }
     draw();
@@ -935,7 +973,7 @@ function playOrder(done, id, title, ROUNDS, part) {
           P.picked.forEach(function (idx, p) { P.rows.push({ q: R.title + ' (місце ' + (p + 1) + ')', mine: R.items[idx].t, right: R.items[p].t, ok: idx === p }); });
           P.r++; P.ord = null; P.picked = [];
           if (P.r >= ROUNDS.length) { P.fin = true; setProg(id, P); saveReview(id, P.rows); done(P.score); return; }
-          setProg(id, P); round(); window.scrollTo(0, 0);
+          setProg(id, P); round(); window.scrollTo(0, 0); toast('Відповіді збережено. Наступне завдання!', 'ok');
         } }),
         h('button', { class: 'btn alt', style: 'flex:1', text: 'Скинути', onclick: function () { P.picked = []; setProg(id, P); draw(); } })]));
     }
@@ -956,6 +994,7 @@ function playStages(done, id, stages) {
     stages[P.k](function (score) {
       P.sum += score; P.rows = P.rows.concat(getReview()[sub] || []); P.k++; setProg(id, P);
       setProg(sub, null); var rv = getReview(); delete rv[sub]; store('imi_review', JSON.stringify(rv));
+      if (P.k < stages.length) toast('Частину ' + P.k + ' збережено. Переходимо до частини ' + (P.k + 1) + '!', 'ok');
       next();
     }, sub, 'Частина ' + (P.k + 1) + ' з ' + stages.length);
   })();
@@ -1153,6 +1192,8 @@ var LEVELS = [
     run: function (done) { playBlitz(done, 'blitz', 'Бос: Блискавка'); } }
 ];
 
+window.addEventListener('offline', function () { toast('Зник інтернет. Продовжуй працювати: відповіді зберігаються на пристрої.', 'bad'); });
+window.addEventListener('online', function () { toast('Інтернет повернувся!', 'ok'); });
 route();
 </script>
 </body>
