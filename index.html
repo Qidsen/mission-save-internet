@@ -260,6 +260,12 @@
   .toast-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; background: var(--cyan); }
   .toast.ok .toast-dot { background: #22b864; } .toast.bad .toast-dot { background: #e0435f; }
   .toast.bad { border-left: 5px solid #e0435f; } .toast.ok { border-left: 5px solid #22b864; } .toast.info { border-left: 5px solid var(--cyan); }
+  .sumrow { display:grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items:center; }
+  .sum-t { min-width: 0; }
+  .sumrow:last-child { border-bottom: 0; padding-bottom: 2px; }
+  .sum-s { min-width: 64px; text-align: right; white-space: nowrap; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .sum-s b { color: var(--ink); font-size: 1.05rem; }
+  .sumrow .stars { font-size: 1.15rem; letter-spacing: 1px; }
   @media (max-width: 420px) { body { font-size: 16.5px; } .slide { flex-basis: 90%; } .grade { font-size: 3.8rem; } .tabs .btn { font-size: .85rem; } .lv b { font-size: .92rem; } .lv .stars { font-size: 1rem; } }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
@@ -620,7 +626,7 @@ function showReview() {
 /* ===== Підсумок + надсилання ===== */
 function showSummary() {
   var t = totals();
-  var rows = LEVELS.map(function (l) { return h('div', { class: 'srow' }, [h('span', { text: l.title }), h('span', { text: (state.scores[l.id] != null ? state.scores[l.id] : '—') + ' / ' + l.max }), starsHtml(state.stars[l.id] || 0)]); });
+  var rows = LEVELS.map(function (l) { return h('div', { class: 'srow sumrow' }, [h('span', { class: 'sum-t', text: l.title }), h('span', { class: 'sum-s' }, [h('b', { text: state.scores[l.id] != null ? String(state.scores[l.id]) : '—' }), ' з ' + l.max]), starsHtml(state.stars[l.id] || 0)]); });
   if (!t.all) {
     render([h('div', { class: 'card' }, [h('h2', { text: 'Підсумок місії' }), h('p', { text: 'Оцінку буде видно, коли пройдеш усі рівні. Пройдено: ' + t.done + ' з ' + LEVELS.length + '.' }), h('div', {}, rows)]), h('button', { class: 'btn big', text: 'До меню', onclick: function () { showMenu(); } })]);
     return;
