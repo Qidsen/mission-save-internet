@@ -179,10 +179,12 @@
   .lt-txt { flex: 1; min-width: 0; }
   .lt-txt small { display:block; color: var(--muted); font-weight: 700; font-size: .82rem; }
   .lt-txt b { display:block; font-family: var(--display); font-size: 1.12rem; line-height: 1.2; margin-top: 2px; }
-  .lt-lock { font-size: .72rem; font-weight: 700; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; white-space: nowrap; }
+  .lt-exit { min-height: 42px; padding: 6px 14px; font-size: .82rem; flex: none; }
+  .navrow { margin: 12px 0 8px; flex-wrap: nowrap; }
+  .navrow .btn { min-height: 54px; }
   .par, .part { display:inline-block; font-family: var(--display); font-size: .66rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: rgba(255,255,255,.13); color: var(--ink); margin-right: 6px; vertical-align: 1px; }
   .part { background: var(--yellow); color: #3a2c00; margin: 0 0 0 6px; }
-  @media (max-width: 420px) { .lt-lock { display:none; } }
+
 
   /* Запитання */
   .qhead { font-size: .9rem; color: var(--cyan); margin: 20px 0 8px; }
@@ -513,7 +515,7 @@ function confetti() {
 }
 
 /* ===== Стан ===== */
-var DATA_VERSION = '3';
+var DATA_VERSION = '4';
 if (store('imi_ver') !== DATA_VERSION) { try { ['imi_state', 'imi_prog', 'imi_review', 'imi_watch'].forEach(function (k) { localStorage.removeItem(k); }); } catch (e) {} store('imi_ver', DATA_VERSION); }
 var state = { first: store('imi_first') || '', last: store('imi_last') || '', cls: store('imi_cls') || '', av: store('imi_av') || '', stars: {}, scores: {} };
 try { var saved = JSON.parse(store('imi_state') || '{}'); if (saved && saved.stars) { state.stars = saved.stars; state.scores = saved.scores || {}; } } catch (e) {}
@@ -608,7 +610,7 @@ var HERO = '<svg class="net" viewBox="0 0 320 110" aria-hidden="true"><g fill="n
   '<circle cx="160" cy="55" r="24" fill="none" stroke="#22d3ee" stroke-opacity=".5"><animate attributeName="r" values="24;34;24" dur="2.4s" repeatCount="indefinite"/><animate attributeName="stroke-opacity" values=".6;0;.6" dur="2.4s" repeatCount="indefinite"/></circle></svg>';
 
 /* ===== Вітальна сторінка ===== */
-function showWelcome(msg) {
+function showWelcome(msg, edit) {
   var first = h('input', { type: 'text', placeholder: 'Ім\'я', maxlength: '30', value: state.first, autocomplete: 'given-name', 'aria-label': 'Ім\'я' });
   var last = h('input', { type: 'text', placeholder: 'Прізвище', maxlength: '30', value: state.last, autocomplete: 'family-name', 'aria-label': 'Прізвище' });
   var cls = h('select', { 'aria-label': 'Клас' }, [h('option', { value: '', text: 'Обери клас' })].concat(CLASSES.map(function (c) { return h('option', { value: c, text: c, selected: state.cls === c ? 'selected' : null }); })));
@@ -616,12 +618,24 @@ function showWelcome(msg) {
   var picker = avatarPicker(avSel, function (v) { avSel = v; });
   function go() {
     if (!first.value.trim() || !last.value.trim() || !cls.value) { err.textContent = 'Заповни ім\'я, прізвище та обери клас, щоб почати місію.'; toast('Заповни ім\'я, прізвище та обери клас.', 'bad'); return; }
-    state.first = first.value.trim(); state.last = last.value.trim(); state.cls = cls.value; state.av = avSel; saveState(); sstore('imi_started', '1'); showMenu(); toast('Місію розпочато! Успіху, агенте ' + state.first + '!', 'ok'); sendProgress();
+    var prev = { first: state.first.trim(), last: state.last.trim(), cls: state.cls };
+    state.first = first.value.trim(); state.last = last.value.trim(); state.cls = cls.value; state.av = avSel; saveState();
+    var moved = prev.first && (prev.first !== state.first || prev.last !== state.last || prev.cls !== state.cls);
+    sstore('imi_started', '1'); showMenu();
+    if (edit) toast('Досьє оновлено.', 'ok'); else toast('Місію розпочато! Успіху, агенте ' + state.first + '!', 'ok');
+    sendProgress(moved ? prev : null);
+  }
+  if (edit) {
+    render([h('div', { class: 'topbar' }, [h('button', { class: 'btn alt', text: '‹ Меню', onclick: function () { showMenu(); } }), h('b', { text: 'Зміни досьє агента' })]),
+      h('p', { class: 'lead', text: 'Виправ ім\'я, прізвище, клас або аватарку. Пройдені рівні й відповіді збережуться.' }),
+      h('div', { class: 'card' }, [h('div', { class: 'row' }, [first, last, cls]), h('b', { style: 'display:block;margin-top:14px', text: 'Аватарка' }), picker, err,
+        h('button', { class: 'btn big', style: 'margin-top:6px', text: 'Зберегти зміни', onclick: go })])]);
+    return;
   }
   var tips = [['Що це?', 'Контрольна робота з інформатики за § 1–5 підручника: сучасні технології, будова комп\'ютера, інформаційні системи, сигнали й мережі, пошук і перевірка інформації. Це гра з ' + LEVELS.length + ' рівнів, розрахована на один урок. Не поспішай і уважно читай завдання.'],
-    ['Правила', 'Кожен рівень проходиться лише один раз, повернутися або перепройти його не можна. Якщо браузер закриється або зникне інтернет, відкрий сторінку знову: гра продовжиться з місця зупинки, а зроблені помилки збережуться. Підказок немає, працюй самостійно. Не виходь зі сторінки: перехід в іншу вкладку чи застосунок фіксується, і вчитель це бачить.'],
+    ['Правила', 'Рівні можна проходити в будь-якому порядку. Усередині рівня можна повертатися до попередньої частини й змінювати відповіді, а також вийти в меню й продовжити пізніше. Коли натиснеш «Завершити рівень», відповіді зафіксуються. Якщо браузер закриється або зникне інтернет, відкрий сторінку знову: гра продовжиться з місця зупинки. Підказок немає, працюй самостійно. Не виходь зі сторінки: перехід в іншу вкладку чи застосунок фіксується, і вчитель це бачить.'],
     ['Оцінка', 'Коли пройдеш усі рівні, одразу побачиш свою оцінку за 12-бальною шкалою. Результат автоматично потрапить до вчителя й до таблиці лідерів твого класу (там видно твоє ім\'я, прізвище й аватарку).'],
-    ['Перед стартом', 'Уважно впиши своє ім\'я та прізвище, обери клас і збери собі аватарку. Після початку першого рівня змінити їх не можна.']];
+    ['Перед стартом', 'Впиши своє ім\'я та прізвище, обери клас і збери собі аватарку. Якщо помилишся, виправити дані можна в меню, поки контрольну не завершено.']];
   render([
     h('h1', { text: 'Контрольна робота: місія «Врятувати Інтернет»' }),
     h('div', { html: HERO }),
@@ -653,9 +667,9 @@ function showMenu(msg) {
   render([
     h('h1', { text: 'Місія: Врятувати Інтернет' }),
     h('div', { html: HERO }),
-    mascot(hi + 'Проходь рівні по черзі. Кожен можна пройти лише раз, тож зосередься!', 'happy'),
+    mascot(hi + 'Рівні можна проходити в будь-якому порядку. Завершений рівень змінити вже не можна, тож перевіряй відповіді!', 'happy'),
     msg ? h('div', { class: 'warn', text: msg }) : null,
-    h('div', { class: 'card row', style: 'justify-content:space-between' }, [h('span', { class: 'row', style: 'flex-wrap:nowrap;gap:12px' }, [avatar(state.av), h('span', {}, [h('b', { text: displayName() }), h('span', { class: 'muted', text: ', ' + state.cls })])]), (t.done === 0 && !LEVELS.some(function (x) { return getProg(x.id); }) ? h('button', { class: 'btn alt', style: 'min-height:40px;padding:6px 14px', text: 'Змінити', onclick: showWelcome }) : null)]),
+    h('div', { class: 'card row', style: 'justify-content:space-between' }, [h('span', { class: 'row', style: 'flex-wrap:nowrap;gap:12px' }, [avatar(state.av), h('span', {}, [h('b', { text: displayName() }), h('span', { class: 'muted', text: ', ' + state.cls })])]), (!t.all ? h('button', { class: 'btn alt', style: 'min-height:40px;padding:6px 14px', text: 'Змінити', onclick: function () { showWelcome(null, true); } }) : null)]),
     SHOW_MATERIALS ? h('h2', { text: 'Секретні матеріали' }) : null,
     SHOW_MATERIALS ? carousel() : null,
     h('h2', { text: 'Місія' }),
@@ -797,12 +811,12 @@ var confirmAt = 0;
 /* Діалог підтвердження: браузер може вважати його виходом зі сторінки, тому позначаємо час */
 function ask(msg) { confirmAt = Date.now(); try { return window.confirm(msg); } finally { confirmAt = Date.now(); } }
 function fmtDur(ms) { var s = Math.round(ms / 1000), m = Math.floor(s / 60); return m ? m + ' хв ' + (s % 60) + ' с' : s + ' с'; }
-function sendProgress() {
+function sendProgress(prev) {
   if (!apiEnabled() || !profileOk() || !sstore('imi_started')) return;
   var t = totals(), inLevel = CUR && state.scores[CUR.id] == null;
   apiPost({ action: 'progress', first: state.first.trim(), last: state.last.trim(), cls: state.cls, done: t.done, total: LEVELS.length,
     pct: Math.round(t.done / LEVELS.length * 100), now: t.all ? 'Завершив контрольну' : inLevel ? 'Рівень ' + (LEVELS.indexOf(CUR) + 1) + ': ' + CUR.title : 'Меню',
-    leaves: W.leaves, away: Math.round(W.away / 1000), fin: t.all, out: !!W.hiddenAt, av: state.av, ts: Date.now() }, true).catch(function () {});
+    leaves: W.leaves, away: Math.round(W.away / 1000), fin: t.all, out: !!W.hiddenAt, av: state.av, ts: Date.now(), prev: prev || undefined }, true).catch(function () {});
 }
 var blurTimer = null;
 function markHidden(viaBlur) {
@@ -980,20 +994,24 @@ window.addEventListener('hashchange', route);
 var CUR = null;
 var timers = [];
 function stopTimers() { timers.forEach(clearInterval); timers = []; }
+/* Вийти з рівня в меню: прогрес рівня вже збережено на пристрої */
+function exitLevel() {
+  if (CUR && CUR.id === 'blitz' && !ask('Вийти з «Блискавки»? Поточне питання буде зараховано як помилку.')) return;
+  stopTimers(); CUR = null; showMenu(); sendProgress();
+  toast('Прогрес рівня збережено. Продовжиш з того ж місця, коли повернешся.', 'info');
+}
 function levelTop(title, part) {
   var l = CUR, idx = LEVELS.indexOf(l), badge = null;
   if (l) { badge = h('span', { class: 'lt-badge' }, [ico(l.icon)]); badge.style.setProperty('--bgc', l.color); }
   var meta = h('small', {}, [l ? h('span', { class: 'par', text: l.par }) : null, l ? 'Рівень ' + (idx + 1) + ' з ' + LEVELS.length : '', part ? h('span', { class: 'part', text: part }) : null]);
-  return h('div', { class: 'ltop' }, [badge, h('div', { class: 'lt-txt' }, [meta, h('b', { text: title })]), h('span', { class: 'lt-lock', text: 'Без повернення' })]);
+  return h('div', { class: 'ltop' }, [badge, h('div', { class: 'lt-txt' }, [meta, h('b', { text: title })]), h('button', { class: 'btn alt lt-exit', text: '‹ Меню', title: 'Вийти в меню, прогрес збережеться', onclick: exitLevel })]);
 }
 function photo(src, alt) { return h('div', { class: 'paper photo' }, [h('img', { src: src, alt: alt || 'Фото з підручника', loading: 'lazy' })]); }
-function textbookFigure(src, alt, caption, cls) {
-  return h('figure', { class: 'paper' + (cls ? ' ' + cls : '') }, [h('img', { src: src, alt: alt, loading: 'lazy' }), h('figcaption', { text: caption })]);
-}
 function others(pool, ans, k) { return shuffle(pool.filter(function (x) { return x !== ans; })).slice(0, k); }
-function confirmLock() { return ask('Підтвердити відповіді? Після цього змінити їх не можна.'); }
+function sumPts(Q) { return Q.reduce(function (s, q) { return s + (q.pts || 1); }, 0); }
+function lis(a) { var d = []; a.forEach(function (x) { var lo = 0, hi = d.length; while (lo < hi) { var m = (lo + hi) >> 1; if (d[m] < x) lo = m + 1; else hi = m; } d[lo] = x; }); return d.length; }
 
-/* ---------- Рушій 1. Запитання з вибором (одна або кілька відповідей) ---------- */
+/* ---------- Варіанти відповіді ---------- */
 function optTiles(it, cur, pick) {
   var two = it.opts.length === 2, g = h('div', { class: two ? 'row' : 'grid' });
   it.opts.forEach(function (o) {
@@ -1017,227 +1035,210 @@ function postView(it, cur, pick) {
   it.opts.forEach(function (o) { body.appendChild(h('button', { class: 'frag' + (cur.indexOf(o) >= 0 ? ' sel' : ''), 'aria-pressed': cur.indexOf(o) >= 0 ? 'true' : 'false', text: o, onclick: function () { pick(o); } })); });
   return h('div', { class: 'post' }, [h('div', { class: 'post-head' }, [h('span', { class: 'post-ava', 'aria-hidden': 'true' }), h('div', {}, [h('b', { text: 'Допис у соцмережі' }), h('small', { text: 'Поширено 12 тис. разів' })])]), body]);
 }
-function playChoiceList(done, id, title, lead, build, part) {
-  var P = getProg(id) || { sel: {}, fin: false };
-  if (!P.sel) P.sel = {};
-  var B = build(P);
-  setProg(id, P);
-  function pts(it, got) {
-    var err = 0; it.correct.forEach(function (o) { if (got.indexOf(o) < 0) err++; }); got.forEach(function (o) { if (it.correct.indexOf(o) < 0) err++; });
-    return it.multi ? Math.max(0, it.pts - err) : (err ? 0 : it.pts);
-  }
-  function total() { var t = 0; B.items.forEach(function (it, k) { t += pts(it, P.sel[k] || []); }); return t; }
-  function rows() {
-    return B.items.map(function (it, k) {
-      var got = P.sel[k] || [], r = { q: it.text, mine: got.join('; ') || '—', right: it.correct.join('; '), ok: pts(it, got) === it.pts };
-      if (it.multi) {
-        r.got = pts(it, got); r.max = it.pts;
-        r.miss = it.correct.filter(function (o) { return got.indexOf(o) < 0; });
-        r.extra = got.filter(function (o) { return it.correct.indexOf(o) < 0; });
-      }
-      return r;
-    });
-  }
-  if (P.fin) { saveReview(id, rows()); done(total()); return; }
-  var box = h('div'), info = h('div', { class: 'muted' }), btn, lastHead = null;
-  function answered() { return B.items.filter(function (it, k) { return (P.sel[k] || []).length > 0; }).length; }
-  function refresh() { info.textContent = 'Є відповідь: ' + answered() + ' з ' + B.items.length + '. Відповіді можна змінювати до підтвердження.'; btn.disabled = answered() < B.items.length; }
-  btn = h('button', { class: 'btn big', style: 'margin:12px 0', text: 'Підтвердити відповіді', onclick: function () {
-    if (answered() < B.items.length || !confirmLock()) return;
-    P.fin = true; setProg(id, P); saveReview(id, rows()); done(total());
-  } });
-  B.items.forEach(function (it, k) {
-    if (it.head && it.head !== lastHead) { lastHead = it.head; box.appendChild(h('h3', { class: 'qhead', text: it.head })); }
-    var card = h('div', { class: 'card q' }), slot = h('div');
-    if (it.pic) card.appendChild(it.pic());
-    card.appendChild(h('div', { class: 'qtitle' }, [h('span', { class: 'qn', text: String(k + 1) }), h('b', { text: it.text })]));
-    if (it.hint) card.appendChild(h('p', { class: 'muted', text: it.hint }));
-    function draw() { slot.innerHTML = ''; slot.appendChild((it.view === 'addr' ? addrView : it.view === 'post' ? postView : optTiles)(it, P.sel[k] || [], pick)); }
-    function pick(o) {
-      var cur = (P.sel[k] || []).slice();
-      if (it.multi) { var ix = cur.indexOf(o); if (ix >= 0) cur.splice(ix, 1); else cur.push(o); } else cur = [o];
-      P.sel[k] = cur; setProg(id, P); draw(); refresh();
-    }
-    draw(); card.appendChild(slot); box.appendChild(card);
-  });
-  render([levelTop(title, part), h('p', { class: 'lead', text: lead }), B.intro ? B.intro() : null, info, box, btn]); refresh();
-}
-/* Будує запитання з масиву Q; порядок варіантів перемішується один раз і зберігається */
-function choiceBuild(Q) {
-  return function (P) {
-    if (!P.ord || P.ord.length !== Q.length) P.ord = Q.map(function (q) { return q.fixed ? q.opts.slice() : shuffle(q.opts); });
-    return { items: Q.map(function (q, k) {
-      return { head: q.head, text: q.text, hint: q.hint, view: q.view, multi: !!q.multi, opts: P.ord[k], correct: q.multi ? q.ok : [q.ok], pts: q.pts || 1,
-        pic: q.img ? function () { return photo(q.img, q.alt); } : null };
-    }) };
-  };
-}
-function sumPts(Q) { return Q.reduce(function (s, q) { return s + (q.pts || 1); }, 0); }
 
-/* ---------- Рушій 2. Підпиши малюнок з підручника ---------- */
-function playLabel(done, id, title, cfg, part) {
-  var P = getProg(id) || { sel: {}, fin: false };
-  if (!P.sel) P.sel = {};
-  if (!P.bank) P.bank = shuffle(cfg.bank);
-  setProg(id, P);
-  var n = cfg.slots.length;
-  function filled() { var c = 0; for (var i = 0; i < n; i++) if (P.sel[i] != null) c++; return c; }
-  function score() { var c = 0; cfg.slots.forEach(function (s, i) { if (P.sel[i] === s.ans) c++; }); return c; }
-  function rows() { return cfg.slots.map(function (s, i) { return { q: cfg.q + ' ' + (i + 1), mine: P.sel[i] || '—', right: s.ans, ok: P.sel[i] === s.ans }; }); }
-  if (P.fin) { saveReview(id, rows()); done(score()); return; }
-  var cur = 0; for (var i0 = 0; i0 < n; i0++) if (P.sel[i0] == null) { cur = i0; break; }
-  var stage = h('div', { class: 'lf-stage' }, [h('img', { src: cfg.img, alt: cfg.alt })]);
-  var fig = h('figure', { class: 'paper labelfig' }, [stage, h('figcaption', { text: cfg.caption })]);
-  var now = h('div', { class: 'lf-now', 'aria-live': 'polite' }), bank = h('div', { class: 'items' }), list = h('div', { class: 'lf-list' }), info = h('div', { class: 'muted' }), btn;
-  var hots = cfg.slots.map(function (s, i) {
-    var b = h('button', { class: 'hot', style: 'left:' + s.x + '%;top:' + s.y + '%', 'aria-label': 'Позначка ' + (i + 1), onclick: function () { cur = i; draw(); } });
-    stage.appendChild(b); return b;
-  });
-  function draw() {
-    hots.forEach(function (b, i) {
-      var s = cfg.slots[i];
-      b.className = 'hot' + (P.sel[i] != null ? ' set' : '') + (i === cur ? ' cur' : '') + (s.lp ? ' p' + s.lp : s.x < 25 ? ' al' : s.x > 75 ? ' ar' : '');
-      b.innerHTML = ''; b.appendChild(h('span', { class: 'hot-n', text: String(i + 1) }));
-      if (P.sel[i] != null) b.appendChild(h('span', { class: 'hot-l', text: P.sel[i] }));
-    });
-    now.innerHTML = ''; now.appendChild(h('span', { class: 'n', text: String(cur + 1) }));
-    now.appendChild(document.createTextNode(P.sel[cur] != null ? ' Позначка ' + (cur + 1) + ': «' + P.sel[cur] + '». Можна змінити.' : ' Обери підпис для позначки ' + (cur + 1)));
-    bank.innerHTML = '';
-    P.bank.forEach(function (w) {
-      var uses = 0; for (var u = 0; u < n; u++) if (P.sel[u] === w) uses++;
-      bank.appendChild(h('button', { class: 'tile' + (P.sel[cur] === w ? ' sel' : '') + (uses ? ' used' : ''), 'aria-label': w + (uses ? ', уже використано ' + uses : '') }, [h('span', { text: w }), uses ? h('span', { class: 'uses', 'aria-hidden': 'true', text: '✓' + (uses > 1 ? ' ' + uses : '') }) : null]));
-      bank.lastChild.addEventListener('click', function () {
-        P.sel[cur] = w; setProg(id, P);
-        for (var k = 1; k < n; k++) { var j = (cur + k) % n; if (P.sel[j] == null) { cur = j; break; } }
-        draw();
+/* ---------- Сторінки рівня ----------
+   Рівень складається зі сторінок (частин). Між ними можна ходити «Назад» і «Далі»,
+   а відповіді фіксуються лише кнопкою «Завершити рівень». */
+function pgChoice(Q, lead) { return { type: 'choice', Q: Q, lead: lead }; }
+function pgLabel(cfg) { return { type: 'label', cfg: cfg, lead: cfg.lead }; }
+function pgSort(R) { return { type: 'sort', R: R }; }
+function pgOrder(R) { return { type: 'order', R: R, lead: 'Натискай картки по черзі, щоб пронумерувати їх. Повторне натискання прибирає номер. Кожна картка не на своєму місці забирає бал.' }; }
+
+function choiceItems(pg, st) {
+  return pg.Q.map(function (q, k) { return { head: q.head, text: q.text, hint: q.hint, view: q.view, multi: !!q.multi, opts: st.ord[k], correct: q.multi ? q.ok : [q.ok], pts: q.pts || 1, img: q.img, alt: q.alt }; });
+}
+function choicePts(it, got) {
+  var err = 0; it.correct.forEach(function (o) { if (got.indexOf(o) < 0) err++; }); got.forEach(function (o) { if (it.correct.indexOf(o) < 0) err++; });
+  return it.multi ? Math.max(0, it.pts - err) : (err ? 0 : it.pts);
+}
+function sortItems(R) { return R.items.map(function (it, i) { return { t: it[0], c: it[1], img: it[2] && it[2].indexOf('/') > 0 ? it[2] : null, icon: it[2] && it[2].indexOf('/') < 0 ? it[2] : null, i: i }; }); }
+
+var PAGE = {
+  choice: {
+    max: function (pg) { return sumPts(pg.Q); },
+    init: function (pg, st) { if (!st.sel) st.sel = {}; if (!st.ord || st.ord.length !== pg.Q.length) st.ord = pg.Q.map(function (q) { return q.fixed ? q.opts.slice() : shuffle(q.opts); }); },
+    status: function (pg, st) { var a = pg.Q.filter(function (q, k) { return (st.sel[k] || []).length > 0; }).length; return ['Є відповідь', a, pg.Q.length]; },
+    score: function (pg, st) { return choiceItems(pg, st).reduce(function (s, it, k) { return s + choicePts(it, st.sel[k] || []); }, 0); },
+    rows: function (pg, st) {
+      return choiceItems(pg, st).map(function (it, k) {
+        var got = st.sel[k] || [], r = { q: it.text, mine: got.join('; ') || '—', right: it.correct.join('; '), ok: choicePts(it, got) === it.pts };
+        if (it.multi) { r.got = choicePts(it, got); r.max = it.pts; r.miss = it.correct.filter(function (o) { return got.indexOf(o) < 0; }); r.extra = got.filter(function (o) { return it.correct.indexOf(o) < 0; }); }
+        return r;
       });
-    });
-    list.innerHTML = '';
-    cfg.slots.forEach(function (s, i) {
-      list.appendChild(h('button', { class: 'lf-row' + (i === cur ? ' cur' : ''), onclick: function () { cur = i; draw(); } },
-        [h('span', { class: 'n' + (P.sel[i] != null ? '' : ' empty'), text: String(i + 1) }), h('span', { class: P.sel[i] != null ? '' : 'muted', text: P.sel[i] != null ? P.sel[i] : 'ще без підпису' })]));
-    });
-    info.textContent = 'Підписано: ' + filled() + ' з ' + n + '. Підписи можна змінювати до підтвердження.';
-    btn.disabled = filled() < n;
-  }
-  btn = h('button', { class: 'btn big', style: 'margin:12px 0', text: 'Підтвердити відповіді', onclick: function () {
-    if (filled() < n || !confirmLock()) return;
-    P.fin = true; setProg(id, P); saveReview(id, rows()); done(score());
-  } });
-  render([levelTop(title, part), h('p', { class: 'lead', text: cfg.lead }), fig, now, bank, list, info, btn]); draw();
-}
+    },
+    render: function (pg, st, save) {
+      var box = h('div'), lastHead = null;
+      choiceItems(pg, st).forEach(function (it, k) {
+        if (it.head && it.head !== lastHead) { lastHead = it.head; box.appendChild(h('h3', { class: 'qhead', text: it.head })); }
+        var card = h('div', { class: 'card q' }), slot = h('div');
+        if (it.img) card.appendChild(photo(it.img, it.alt));
+        card.appendChild(h('div', { class: 'qtitle' }, [h('span', { class: 'qn', text: String(k + 1) }), h('b', { text: it.text })]));
+        if (it.hint) card.appendChild(h('p', { class: 'muted', text: it.hint }));
+        function draw() { slot.innerHTML = ''; slot.appendChild((it.view === 'addr' ? addrView : it.view === 'post' ? postView : optTiles)(it, st.sel[k] || [], pick)); }
+        function pick(o) {
+          var cur = (st.sel[k] || []).slice();
+          if (it.multi) { var ix = cur.indexOf(o); if (ix >= 0) cur.splice(ix, 1); else cur.push(o); } else cur = [o];
+          st.sel[k] = cur; draw(); save();
+        }
+        draw(); card.appendChild(slot); box.appendChild(card);
+      });
+      return box;
+    }
+  },
 
-/* ---------- Рушій 3. Розклади картки по групах ---------- */
-function playSortG(done, id, title, ROUNDS, part) {
-  var P = getProg(id) || { r: 0, score: 0, assign: {}, ord: null, fin: false, rows: [] };
-  if (!P.rows) P.rows = [];
-  if (!P.assign) P.assign = {};
-  var sel = null, stage = h('div');
-  function tile(x, extra, onclick) {
-    var cls = 'tile' + (x.img ? ' pic' : '') + (sel === x.i ? ' sel' : '') + (extra || '');
-    if (x.icon) cls += ' pic';
-    return h('button', { class: cls, onclick: onclick }, x.img ? [h('img', { src: x.img, alt: '', loading: 'lazy' }), h('span', { text: x.t })] : [x.icon ? h('span', { class: 'picbox' }, [ico(x.icon, '', '#2a2e4a')]) : null, h('span', { text: x.t })]);
-  }
-  function round() {
-    var R = ROUNDS[P.r], all = R.items.map(function (it, i) { return { t: it[0], c: it[1], img: it[2] && it[2].indexOf('/') > 0 ? it[2] : null, icon: it[2] && it[2].indexOf('/') < 0 ? it[2] : null, i: i }; });
-    if (!P.ord) P.ord = shuffle(all.map(function (x) { return x.i; }));
-    setProg(id, P); sel = null;
-    function draw() {
-      stage.innerHTML = '';
-      var pool = P.ord.filter(function (i) { return P.assign[i] == null; });
-      stage.appendChild(h('div', { class: 'muted', text: 'Завдання ' + (P.r + 1) + ' з ' + ROUNDS.length + '. Розкладено: ' + (all.length - pool.length) + ' з ' + all.length }));
-      stage.appendChild(h('div', { class: 'card' }, [h('div', { class: 'row', style: 'flex-wrap:nowrap' }, [ico(R.icon, '', '#fde047'), h('div', { style: 'flex:1' }, [h('b', { text: R.title }), h('div', { class: 'muted', text: 'Натисни картку, потім групу. Картку можна перенести в іншу групу, поки не підтвердиш.' })])])]));
-      var items = h('div', { class: 'items' });
-      pool.forEach(function (i) { items.appendChild(tile(all[i], '', function () { sel = (sel === i) ? null : i; draw(); })); });
-      if (!pool.length) items.appendChild(h('div', { class: 'muted', text: 'Усі картки розкладено. Перевір групи й підтверди.' }));
-      stage.appendChild(items);
-      var cats = h('div', { class: 'cats' });
-      R.cats.forEach(function (name, ci) {
-        var inside = h('div', { class: 'items', style: 'margin-top:8px;justify-content:center' });
-        P.ord.forEach(function (i) {
-          if (P.assign[i] === ci) inside.appendChild(tile(all[i], ' in', function (e) {
-            e.stopPropagation();
-            if (sel != null && sel !== i) { P.assign[sel] = ci; setProg(id, P); sel = null; } else sel = (sel === i) ? null : i;
-            draw();
-          }));
+  label: {
+    max: function (pg) { return pg.cfg.slots.length; },
+    init: function (pg, st) { if (!st.sel) st.sel = {}; if (!st.bank) st.bank = shuffle(pg.cfg.bank); },
+    status: function (pg, st) { var n = pg.cfg.slots.length, c = 0; for (var i = 0; i < n; i++) if (st.sel[i] != null) c++; return ['Підписано', c, n]; },
+    score: function (pg, st) { var c = 0; pg.cfg.slots.forEach(function (s, i) { if (st.sel[i] === s.ans) c++; }); return c; },
+    rows: function (pg, st) { return pg.cfg.slots.map(function (s, i) { return { q: pg.cfg.q + ' ' + (i + 1), mine: st.sel[i] || '—', right: s.ans, ok: st.sel[i] === s.ans }; }); },
+    render: function (pg, st, save) {
+      var cfg = pg.cfg, n = cfg.slots.length, cur = 0;
+      for (var i0 = 0; i0 < n; i0++) if (st.sel[i0] == null) { cur = i0; break; }
+      var stage = h('div', { class: 'lf-stage' }, [h('img', { src: cfg.img, alt: cfg.alt })]);
+      var fig = h('figure', { class: 'paper labelfig' }, [stage, h('figcaption', { text: cfg.caption })]);
+      var now = h('div', { class: 'lf-now', 'aria-live': 'polite' }), bank = h('div', { class: 'items' }), list = h('div', { class: 'lf-list' });
+      var hots = cfg.slots.map(function (s, i) {
+        var b = h('button', { class: 'hot', style: 'left:' + s.x + '%;top:' + s.y + '%', 'aria-label': 'Позначка ' + (i + 1), onclick: function () { cur = i; draw(); } });
+        stage.appendChild(b); return b;
+      });
+      function draw() {
+        hots.forEach(function (b, i) {
+          var s = cfg.slots[i];
+          b.className = 'hot' + (st.sel[i] != null ? ' set' : '') + (i === cur ? ' cur' : '') + (s.lp ? ' p' + s.lp : s.x < 25 ? ' al' : s.x > 75 ? ' ar' : '');
+          b.innerHTML = ''; b.appendChild(h('span', { class: 'hot-n', text: String(i + 1) }));
+          if (st.sel[i] != null) b.appendChild(h('span', { class: 'hot-l', text: st.sel[i] }));
         });
-        cats.appendChild(h('div', { class: 'cat' + (sel != null ? ' armed' : ''), role: 'button', tabindex: '0', onclick: function () {
-          if (sel == null) return; P.assign[sel] = ci; setProg(id, P); sel = null; draw();
-        }, onkeydown: function (e) { if ((e.key === 'Enter' || e.key === ' ') && sel != null) { e.preventDefault(); P.assign[sel] = ci; setProg(id, P); sel = null; draw(); } } }, [h('div', { class: 'cat-name', text: name }), inside]));
-      });
-      stage.appendChild(cats);
-      stage.appendChild(h('button', { class: 'btn big', style: 'margin:12px 0', text: P.r + 1 < ROUNDS.length ? 'Підтвердити й далі' : 'Підтвердити відповіді', disabled: pool.length ? 'disabled' : null, onclick: function () {
-        if (pool.length || !ask('Підтвердити розкладені картки? Змінити їх після цього не можна.')) return;
-        all.forEach(function (x) { var okk = P.assign[x.i] === x.c; if (okk) P.score++; P.rows.push({ q: x.t, mine: R.cats[P.assign[x.i]], right: R.cats[x.c], ok: okk }); });
-        P.r++; P.assign = {}; P.ord = null;
-        if (P.r >= ROUNDS.length) { P.fin = true; setProg(id, P); saveReview(id, P.rows); done(P.score); return; }
-        setProg(id, P); round(); window.scrollTo(0, 0); toast('Відповіді збережено. Наступне завдання!', 'ok');
-      } }));
+        now.innerHTML = ''; now.appendChild(h('span', { class: 'n', text: String(cur + 1) }));
+        now.appendChild(document.createTextNode(st.sel[cur] != null ? ' Позначка ' + (cur + 1) + ': «' + st.sel[cur] + '». Можна змінити.' : ' Обери підпис для позначки ' + (cur + 1)));
+        bank.innerHTML = '';
+        st.bank.forEach(function (w) {
+          var uses = 0; for (var u = 0; u < n; u++) if (st.sel[u] === w) uses++;
+          var b = h('button', { class: 'tile' + (st.sel[cur] === w ? ' sel' : '') + (uses ? ' used' : ''), 'aria-label': w + (uses ? ', уже використано ' + uses : '') }, [h('span', { text: w }), uses ? h('span', { class: 'uses', 'aria-hidden': 'true', text: '✓' + (uses > 1 ? ' ' + uses : '') }) : null]);
+          b.addEventListener('click', function () {
+            st.sel[cur] = w;
+            for (var k = 1; k < n; k++) { var j = (cur + k) % n; if (st.sel[j] == null) { cur = j; break; } }
+            draw(); save();
+          });
+          bank.appendChild(b);
+        });
+        list.innerHTML = '';
+        cfg.slots.forEach(function (s, i) {
+          list.appendChild(h('button', { class: 'lf-row' + (i === cur ? ' cur' : ''), onclick: function () { cur = i; draw(); } },
+            [h('span', { class: 'n' + (st.sel[i] != null ? '' : ' empty'), text: String(i + 1) }), h('span', { class: st.sel[i] != null ? '' : 'muted', text: st.sel[i] != null ? st.sel[i] : 'ще без підпису' })]));
+        });
+      }
+      draw();
+      return h('div', {}, [fig, now, bank, list]);
     }
-    draw();
-  }
-  if (P.fin || P.r >= ROUNDS.length) { saveReview(id, P.rows); done(P.score); return; }
-  render([levelTop(title, part), stage]); round();
-}
-function sumSort(R) { return R.reduce(function (s, r) { return s + r.items.length; }, 0); }
+  },
 
-/* ---------- Рушій 4. Розстав по порядку ----------
-   Бали = довжина найдовшого правильно впорядкованого ланцюжка карток мінус 1.
-   Усе правильно: (карток − 1) балів; одна картка не на місці: мінус 1 бал. */
-function lis(a) { var d = []; a.forEach(function (x) { var lo = 0, hi = d.length; while (lo < hi) { var m = (lo + hi) >> 1; if (d[m] < x) lo = m + 1; else hi = m; } d[lo] = x; }); return d.length; }
-function playOrder(done, id, title, ROUNDS, part) {
-  var P = getProg(id) || { r: 0, score: 0, rows: [], ord: null, picked: [], fin: false };
-  if (!P.rows) P.rows = [];
-  var stage = h('div');
-  function round() {
-    var R = ROUNDS[P.r];
-    if (!P.ord) { do { P.ord = shuffle(R.items.map(function (x, i) { return i; })); } while (P.ord.every(function (v, i) { return v === i; })); P.picked = []; }
-    if (!P.picked) P.picked = [];
-    setProg(id, P);
-    function draw() {
-      stage.innerHTML = '';
-      stage.appendChild(h('div', { class: 'muted', text: 'Завдання ' + (P.r + 1) + ' з ' + ROUNDS.length }));
-      stage.appendChild(h('div', { class: 'card' }, [h('div', { class: 'row', style: 'flex-wrap:nowrap' }, [ico(R.icon, '', '#f472b6'), h('div', { style: 'flex:1' }, [h('b', { text: R.title }), h('div', { class: 'muted', text: R.how })])])]));
-      var list = h('div', { class: 'grid' });
-      P.ord.forEach(function (idx) {
-        var pos = P.picked.indexOf(idx), it = R.items[idx];
-        list.appendChild(h('button', { class: 'tile' + (pos >= 0 ? ' sel' : ''), onclick: function () { var p = P.picked.indexOf(idx); if (p >= 0) P.picked.splice(p, 1); else P.picked.push(idx); setProg(id, P); draw(); } },
-          [h('span', { class: 'n' + (pos >= 0 ? '' : ' empty'), text: pos >= 0 ? String(pos + 1) : '' }), it.big ? h('span', { class: 'bigtag', text: it.big }) : h('span', { text: it.t })]));
-      });
-      stage.appendChild(list);
-      var all = P.picked.length === R.items.length;
-      stage.appendChild(h('div', { class: 'row', style: 'margin-top:12px' }, [
-        h('button', { class: 'btn', style: 'flex:2', text: P.r + 1 < ROUNDS.length ? 'Підтвердити й далі' : 'Підтвердити відповіді', disabled: all ? null : 'disabled', onclick: function () {
-          if (!all || !ask('Підтвердити порядок? Змінити його після цього не можна.')) return;
-          P.score += lis(P.picked) - 1;
-          P.picked.forEach(function (idx, p) { P.rows.push({ q: R.title + ' (місце ' + (p + 1) + ')', mine: R.items[idx].t, right: R.items[p].t, ok: idx === p }); });
-          P.r++; P.ord = null; P.picked = [];
-          if (P.r >= ROUNDS.length) { P.fin = true; setProg(id, P); saveReview(id, P.rows); done(P.score); return; }
-          setProg(id, P); round(); window.scrollTo(0, 0); toast('Відповіді збережено. Наступне завдання!', 'ok');
-        } }),
-        h('button', { class: 'btn alt', style: 'flex:1', text: 'Скинути', onclick: function () { P.picked = []; setProg(id, P); draw(); } })]));
+  sort: {
+    max: function (pg) { return pg.R.items.length; },
+    init: function (pg, st) { if (!st.assign) st.assign = {}; if (!st.ord || st.ord.length !== pg.R.items.length) st.ord = shuffle(pg.R.items.map(function (x, i) { return i; })); },
+    status: function (pg, st) { var c = 0; pg.R.items.forEach(function (x, i) { if (st.assign[i] != null) c++; }); return ['Розкладено', c, pg.R.items.length]; },
+    score: function (pg, st) { return sortItems(pg.R).filter(function (x) { return st.assign[x.i] === x.c; }).length; },
+    rows: function (pg, st) { var R = pg.R; return sortItems(R).map(function (x) { return { q: x.t, mine: st.assign[x.i] != null ? R.cats[st.assign[x.i]] : '—', right: R.cats[x.c], ok: st.assign[x.i] === x.c }; }); },
+    render: function (pg, st, save) {
+      var R = pg.R, all = sortItems(R), sel = null, stage = h('div');
+      function tile(x, extra, onclick) {
+        var cls = 'tile' + (x.img || x.icon ? ' pic' : '') + (sel === x.i ? ' sel' : '') + (extra || '');
+        return h('button', { class: cls, onclick: onclick }, x.img ? [h('img', { src: x.img, alt: '', loading: 'lazy' }), h('span', { text: x.t })] : [x.icon ? h('span', { class: 'picbox' }, [ico(x.icon, '', '#2a2e4a')]) : null, h('span', { text: x.t })]);
+      }
+      function put(ci) { st.assign[sel] = ci; sel = null; draw(); save(); }
+      function draw() {
+        stage.innerHTML = '';
+        var pool = st.ord.filter(function (i) { return st.assign[i] == null; });
+        stage.appendChild(h('div', { class: 'card' }, [h('div', { class: 'row', style: 'flex-wrap:nowrap' }, [ico(R.icon, '', '#fde047'), h('div', { style: 'flex:1' }, [h('b', { text: R.title }), h('div', { class: 'muted', text: 'Натисни картку, потім групу. Картку можна перенести в іншу групу.' })])])]));
+        var items = h('div', { class: 'items' });
+        pool.forEach(function (i) { items.appendChild(tile(all[i], '', function () { sel = (sel === i) ? null : i; draw(); })); });
+        if (!pool.length) items.appendChild(h('div', { class: 'muted', text: 'Усі картки розкладено. Перевір групи.' }));
+        stage.appendChild(items);
+        var cats = h('div', { class: 'cats' });
+        R.cats.forEach(function (name, ci) {
+          var inside = h('div', { class: 'items', style: 'margin-top:8px;justify-content:center' });
+          st.ord.forEach(function (i) {
+            if (st.assign[i] === ci) inside.appendChild(tile(all[i], ' in', function (e) {
+              e.stopPropagation();
+              if (sel != null && sel !== i) put(ci); else { sel = (sel === i) ? null : i; draw(); }
+            }));
+          });
+          cats.appendChild(h('div', { class: 'cat' + (sel != null ? ' armed' : ''), role: 'button', tabindex: '0', onclick: function () { if (sel != null) put(ci); },
+            onkeydown: function (e) { if ((e.key === 'Enter' || e.key === ' ') && sel != null) { e.preventDefault(); put(ci); } } }, [h('div', { class: 'cat-name', text: name }), inside]));
+        });
+        stage.appendChild(cats);
+      }
+      draw();
+      return stage;
     }
-    draw();
-  }
-  if (P.fin || P.r >= ROUNDS.length) { saveReview(id, P.rows); done(P.score); return; }
-  render([levelTop(title, part), h('p', { class: 'lead', text: 'Натискай картки по черзі, щоб пронумерувати їх. Повторне натискання прибирає номер. Кожна картка не на своєму місці забирає бал.' }), stage]); round();
-}
-function sumOrder(R) { return R.reduce(function (s, r) { return s + r.items.length - 1; }, 0); }
+  },
 
-/* ---------- Рівень із кількох частин ---------- */
-function playStages(done, id, stages) {
-  var P = getProg(id) || { k: 0, sum: 0, rows: [] };
-  setProg(id, P);
-  (function next() {
-    if (P.k >= stages.length) { saveReview(id, P.rows); done(P.sum); return; }
-    var sub = id + '_' + P.k;
-    stages[P.k](function (score) {
-      P.sum += score; P.rows = P.rows.concat(getReview()[sub] || []); P.k++; setProg(id, P);
-      setProg(sub, null); var rv = getReview(); delete rv[sub]; store('imi_review', JSON.stringify(rv));
-      if (P.k < stages.length) toast('Частину ' + P.k + ' збережено. Переходимо до частини ' + (P.k + 1) + '!', 'ok');
-      next();
-    }, sub, 'Частина ' + (P.k + 1) + ' з ' + stages.length);
-  })();
+  order: {
+    max: function (pg) { return pg.R.items.length - 1; },
+    init: function (pg, st) {
+      var n = pg.R.items.length;
+      if (!st.ord || st.ord.length !== n) { do { st.ord = shuffle(pg.R.items.map(function (x, i) { return i; })); } while (st.ord.every(function (v, i) { return v === i; })); st.picked = []; }
+      if (!st.picked) st.picked = [];
+    },
+    status: function (pg, st) { return ['Пронумеровано', st.picked.length, pg.R.items.length]; },
+    score: function (pg, st) { return st.picked.length === pg.R.items.length ? lis(st.picked) - 1 : 0; },
+    rows: function (pg, st) { var R = pg.R; return R.items.map(function (x, p) { var idx = st.picked[p]; return { q: R.title + ' (місце ' + (p + 1) + ')', mine: idx != null ? R.items[idx].t : '—', right: x.t, ok: idx === p }; }); },
+    render: function (pg, st, save) {
+      var R = pg.R, stage = h('div');
+      function draw() {
+        stage.innerHTML = '';
+        stage.appendChild(h('div', { class: 'card' }, [h('div', { class: 'row', style: 'flex-wrap:nowrap' }, [ico(R.icon, '', '#f472b6'), h('div', { style: 'flex:1' }, [h('b', { text: R.title }), h('div', { class: 'muted', text: R.how })])])]));
+        var list = h('div', { class: 'grid' });
+        st.ord.forEach(function (idx) {
+          var pos = st.picked.indexOf(idx), it = R.items[idx];
+          list.appendChild(h('button', { class: 'tile' + (pos >= 0 ? ' sel' : ''), onclick: function () { var p = st.picked.indexOf(idx); if (p >= 0) st.picked.splice(p, 1); else st.picked.push(idx); draw(); save(); } },
+            [h('span', { class: 'n' + (pos >= 0 ? '' : ' empty'), text: pos >= 0 ? String(pos + 1) : '' }), it.big ? h('span', { class: 'bigtag', text: it.big }) : h('span', { text: it.t })]));
+        });
+        stage.appendChild(list);
+        stage.appendChild(h('button', { class: 'btn alt', style: 'margin-top:10px', text: 'Скинути нумерацію', onclick: function () { st.picked = []; draw(); save(); } }));
+      }
+      draw();
+      return stage;
+    }
+  }
+};
+
+/* ---------- Прохід рівня зі сторінок ---------- */
+function levelMax(l) { return l.pages.reduce(function (s, pg) { return s + PAGE[pg.type].max(pg); }, 0); }
+function playPages(done, l) {
+  var pages = l.pages, P = getProg(l.id) || { k: 0, st: {} };
+  if (!P.st) P.st = {};
+  if (!(P.k >= 0 && P.k < pages.length)) P.k = 0;
+  pages.forEach(function (pg, i) { P.st[i] = P.st[i] || {}; PAGE[pg.type].init(pg, P.st[i]); });
+  setProg(l.id, P);
+  function finish() {
+    var sum = 0, rows = [];
+    pages.forEach(function (pg, i) { sum += PAGE[pg.type].score(pg, P.st[i]); rows = rows.concat(PAGE[pg.type].rows(pg, P.st[i])); });
+    saveReview(l.id, rows); done(sum);
+  }
+  if (P.fin) { finish(); return; }
+  function show() {
+    var k = P.k, pg = pages[k], st = P.st[k], T = PAGE[pg.type], last = k === pages.length - 1;
+    window.__pg = pg;
+    var info = h('div', { class: 'muted' }), next;
+    function complete() { var s = T.status(pg, st); return s[1] >= s[2]; }
+    function refresh() {
+      var s = T.status(pg, st);
+      info.textContent = s[0] + ': ' + s[1] + ' з ' + s[2] + '. ' + (complete() ? (last ? 'Перевір усе й завершуй рівень.' : 'Можна переходити далі.') : 'Відповіді можна змінювати, поки не завершиш рівень.');
+      next.disabled = !complete();
+    }
+    function save() { setProg(l.id, P); refresh(); }
+    next = h('button', { class: 'btn', style: 'flex:2', text: last ? 'Завершити рівень' : 'Далі ›', onclick: function () {
+      if (!complete()) return;
+      if (!last) { P.k++; setProg(l.id, P); show(); return; }
+      if (!ask('Завершити рівень «' + l.title + '»? Після цього змінити відповіді не можна.')) return;
+      P.fin = true; setProg(l.id, P); finish();
+    } });
+    var back = k > 0 ? h('button', { class: 'btn alt', style: 'flex:1', text: '‹ Назад', onclick: function () { P.k--; setProg(l.id, P); show(); } }) : null;
+    render([levelTop(l.title, pages.length > 1 ? 'Частина ' + (k + 1) + ' з ' + pages.length : ''), pg.lead ? h('p', { class: 'lead', text: pg.lead }) : null, T.render(pg, st, save), info, h('div', { class: 'row navrow' }, [back, next])]);
+    refresh();
+  }
+  show();
 }
 
 /* ===================== ЗМІСТ РІВНІВ ===================== */
@@ -1383,7 +1384,7 @@ function playBlitz(done, id, title) {
   var qs = P.ids.map(function (k) { return BLITZ[k]; }), i = P.i, score = P.score, locked = false, left, box = h('div');
   setProg(id, P);
   function end() { stopTimers(); saveReview(id, P.rows); done(score); }
-  function next() { i++; P.i = i; P.score = score; P.open = false; setProg(id, P); if (i >= qs.length) end(); else show(); }
+  function next() { if (!CUR || CUR.id !== id) return; i++; P.i = i; P.score = score; P.open = false; setProg(id, P); if (i >= qs.length) end(); else show(); }
   function show() {
     stopTimers(); locked = false; left = BLITZ_SEC; P.open = true; setProg(id, P);
     var q = qs[i], bar = h('i'), fb = h('div', { class: 'fb', 'aria-live': 'polite' });
@@ -1399,38 +1400,33 @@ function playBlitz(done, id, title) {
     timers.push(setInterval(function () { left -= 0.1; bar.style.width = Math.max(0, left / BLITZ_SEC * 100) + '%'; if (left <= 0) answer(null, true); }, 100));
   }
   if (i >= qs.length) { saveReview(id, P.rows); done(score); return; }
-  render([levelTop(title), h('p', { class: 'lead', text: 'На кожне твердження ' + BLITZ_SEC + ' секунд. Встигни відповісти: правда це чи ні. Якщо оновити сторінку, поточне питання зарахується як помилка.' }), box]); show();
+  render([levelTop(title), h('p', { class: 'lead', text: 'На кожне твердження ' + BLITZ_SEC + ' секунд. Встигни відповісти: правда це чи ні. Якщо оновити сторінку або вийти в меню, поточне питання зарахується як помилка.' }), box]); show();
 }
 
 /* ===================== СПИСОК РІВНІВ ===================== */
 var LEVELS = [
-  { id: 'tech', title: 'Лабораторія майбутнього', par: '§ 1', sub: 'Технології, що змінюють світ', icon: 'atom', color: '#22d3ee', max: TECH.length,
-    run: function (done) { playChoiceList(done, 'tech', 'Лабораторія майбутнього', 'Прочитай опис і визнач, про яку технологію чи пристрій ідеться.', choiceBuild(TECH)); } },
-  { id: 'unit', title: 'Розбери системний блок', par: '§ 2', sub: 'Підпиши деталі на малюнку з підручника', icon: 'cpu', color: '#4ade80', max: SU.slots.length,
-    run: function (done) { playLabel(done, 'unit', 'Розбери системний блок', SU); } },
-  { id: 'devices', title: 'Пристрої й пам\'ять', par: '§ 2', sub: 'Введення, виведення, види пам\'яті', icon: 'screen', color: '#fb7185', max: sumSort(DEV_ROUNDS),
-    run: function (done) { playSortG(done, 'devices', 'Пристрої й пам\'ять', DEV_ROUNDS); } },
-  { id: 'systems', title: 'Інформаційні системи', par: '§ 2', sub: 'Процеси в сигналізації та смарт-годиннику', icon: 'puzzle', color: '#a78bfa', max: sumPts(SYS_Q) + sumSort(SYS_SORT),
-    run: function (done) { playStages(done, 'systems', [
-      function (d, id, part) { playChoiceList(d, id, 'Інформаційні системи', 'Інформаційна система отримує, опрацьовує, зберігає й передає інформацію. Визнач, який процес відбувається на кожному кроці.', choiceBuild(SYS_Q), part); },
-      function (d, id, part) { playSortG(d, id, 'Інформаційні системи', SYS_SORT, part); }]); } },
-  { id: 'signals', title: 'Сигнали й канали', par: '§ 3', sub: 'Світло, струм, радіохвилі, органи чуття', icon: 'wave', color: '#fde047', max: sumSort(SIG_ROUNDS),
-    run: function (done) { playSortG(done, 'signals', 'Сигнали й канали', SIG_ROUNDS); } },
-  { id: 'network', title: 'Збудуй мережу', par: '§ 3', sub: 'Схема мережі, обладнання, види мереж', icon: 'home', color: '#38bdf8', max: LAN.slots.length + sumPts(NET_Q),
-    run: function (done) { playStages(done, 'network', [
-      function (d, id, part) { playLabel(d, id, 'Збудуй мережу', LAN, part); },
-      function (d, id, part) { playChoiceList(d, id, 'Збудуй мережу', 'Мережу зібрано! Тепер перевір, чи впізнаєш обладнання і чи розрізняєш види мереж.', choiceBuild(NET_Q), part); }]); } },
-  { id: 'time', title: 'Машина часу', par: '§ 2–3', sub: 'Від старих технологій до нових', icon: 'clock', color: '#f472b6', max: sumOrder(TIME_ROUNDS),
-    run: function (done) { playOrder(done, 'time', 'Машина часу', TIME_ROUNDS); } },
-  { id: 'search', title: 'Пошуковий детектив', par: '§ 4', sub: 'Шлях запиту, пошук, домени', icon: 'magnifier', color: '#c084fc', max: sumOrder(SEARCH_ORDER) + sumPts(SEARCH_Q),
-    run: function (done) { playStages(done, 'search', [
-      function (d, id, part) { playOrder(d, id, 'Пошуковий детектив', SEARCH_ORDER, part); },
-      function (d, id, part) { playChoiceList(d, id, 'Пошуковий детектив', 'Покажи, що вмієш шукати інформацію: склади влучний запит і розберися в адресах сайтів.', choiceBuild(SEARCH_Q), part); }]); } },
-  { id: 'fake', title: 'Фейк-детектор', par: '§ 5', sub: 'Факти, судження, достовірність', icon: 'shield', color: '#34d399', max: sumPts(FAKE_Q),
-    run: function (done) { playChoiceList(done, 'fake', 'Фейк-детектор', 'Перевір інформацію як справжній детектив: не все, що поширюють тисячі людей, є правдою.', choiceBuild(FAKE_Q)); } },
+  { id: 'tech', title: 'Лабораторія майбутнього', par: '§ 1', sub: 'Технології, що змінюють світ', icon: 'atom', color: '#22d3ee',
+    pages: [pgChoice(TECH, 'Прочитай опис і визнач, про яку технологію чи пристрій ідеться.')] },
+  { id: 'unit', title: 'Розбери системний блок', par: '§ 2', sub: 'Підпиши деталі на малюнку з підручника', icon: 'cpu', color: '#4ade80',
+    pages: [pgLabel(SU)] },
+  { id: 'devices', title: 'Пристрої й пам\'ять', par: '§ 2', sub: 'Введення, виведення, види пам\'яті', icon: 'screen', color: '#fb7185',
+    pages: DEV_ROUNDS.map(function (R) { return pgSort(R); }) },
+  { id: 'systems', title: 'Інформаційні системи', par: '§ 2', sub: 'Процеси в сигналізації та смарт-годиннику', icon: 'puzzle', color: '#a78bfa',
+    pages: [pgChoice(SYS_Q, 'Інформаційна система отримує, опрацьовує, зберігає й передає інформацію. Визнач, який процес відбувається на кожному кроці.'), pgSort(SYS_SORT[0])] },
+  { id: 'signals', title: 'Сигнали й канали', par: '§ 3', sub: 'Світло, струм, радіохвилі, органи чуття', icon: 'wave', color: '#fde047',
+    pages: SIG_ROUNDS.map(function (R) { return pgSort(R); }) },
+  { id: 'network', title: 'Збудуй мережу', par: '§ 3', sub: 'Схема мережі, обладнання, види мереж', icon: 'home', color: '#38bdf8',
+    pages: [pgLabel(LAN), pgChoice(NET_Q, 'Мережу зібрано! Тепер перевір, чи впізнаєш обладнання і чи розрізняєш види мереж.')] },
+  { id: 'time', title: 'Машина часу', par: '§ 2–3', sub: 'Від старих технологій до нових', icon: 'clock', color: '#f472b6',
+    pages: TIME_ROUNDS.map(function (R) { return pgOrder(R); }) },
+  { id: 'search', title: 'Пошуковий детектив', par: '§ 4', sub: 'Шлях запиту, пошук, домени', icon: 'magnifier', color: '#c084fc',
+    pages: SEARCH_ORDER.map(function (R) { return pgOrder(R); }).concat([pgChoice(SEARCH_Q, 'Покажи, що вмієш шукати інформацію: склади влучний запит і розберися в адресах сайтів.')]) },
+  { id: 'fake', title: 'Фейк-детектор', par: '§ 5', sub: 'Факти, судження, достовірність', icon: 'shield', color: '#34d399',
+    pages: [pgChoice(FAKE_Q, 'Перевір інформацію як справжній детектив: не все, що поширюють тисячі людей, є правдою.')] },
   { id: 'blitz', title: 'Бос: Блискавка', par: '§ 1–5', sub: 'Правда чи ні на швидкість', icon: 'bolt', color: '#fb923c', max: BLITZ_N,
     run: function (done) { playBlitz(done, 'blitz', 'Бос: Блискавка'); } }
 ];
+LEVELS.forEach(function (l) { if (l.pages) { l.max = levelMax(l); l.run = function (done) { playPages(done, l); }; } });
 
 window.addEventListener('offline', function () { toast('Зник інтернет. Продовжуй працювати: відповіді зберігаються на пристрої.', 'bad'); });
 window.addEventListener('online', function () { toast('Інтернет повернувся!', 'ok'); });

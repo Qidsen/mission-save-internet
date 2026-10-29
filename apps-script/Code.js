@@ -79,7 +79,14 @@ function doPost(e) {
       if (!CLASS_RE.test(String(d.cls))) return out_({ ok: false, error: 'bad class' });
       var pf = clean_(d.first), pl = clean_(d.last);
       if (!pf || !pl) return out_({ ok: false, error: 'name required' });
-      var ps = progSheet_(), at = progFind_(ps, d.cls, pl, pf), ts = Number(d.ts) || 0;
+      var ps = progSheet_(), ts = Number(d.ts) || 0;
+      // Учень виправив ім'я, прізвище чи клас: прибираємо його старий рядок
+      if (d.prev && CLASS_RE.test(String(d.prev.cls))) {
+        var pp = d.prev, same = pp.cls === d.cls && same_(pp.last, pl) && same_(pp.first, pf);
+        var old = same ? 0 : progFind_(ps, pp.cls, clean_(pp.last), clean_(pp.first));
+        if (old) ps.deleteRow(old);
+      }
+      var at = progFind_(ps, d.cls, pl, pf);
       // Запити можуть прийти не в тому порядку: старіші за збережений ігноруємо
       if (at && ts && Number(ps.getRange(at, PHEAD.length - 1).getValue()) > ts) return out_({ ok: true, stale: true });
       var prow = [new Date(), d.cls, pl, pf, num_(d.pct, 100), num_(d.done, 100) + ' з ' + num_(d.total, 100), clean_(d.now, 60),
