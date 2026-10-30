@@ -168,10 +168,7 @@
   .pdfhost { position: fixed; left: -12000px; top: 0; width: 760px; pointer-events: none; }
   .pdfdoc { width: 720px; background: #fff; color: #1f2147; font-family: var(--body); font-size: 13px; line-height: 1.38;
     --card: #fff; --card2: #eef0ff; --line: #e1e3f5; --muted: #6a6f99; --green: #12965a; --red: #d63a5a; --yellow: #b77d00; --cyan: #0b8798; --ink: #1f2147; }
-  /* У PDF рівень без рамки: довгий рівень переходить на нову сторінку без розрізаної рамки */
-  .pdfdoc .rv-lv { border: 0; border-radius: 0; padding: 0; margin-bottom: 16px; background: none; }
-  .pdfdoc .rv-lh { background: #eef0ff; border-radius: 10px; padding: 7px 10px; margin-bottom: 2px; }
-  .pdfdoc .rv-n { background: #5b3fd8; color: #fff; }
+  .pdfdoc .rv-lv { border-radius: 14px; padding: 10px 12px; }
   .pdfdoc .rv-lh b { font-size: 14px; }
   .pdfdoc .rv-row { padding: 7px 10px; margin-top: 6px; }
   .pdfdoc .rv-row.ok { background: #effaf4; } .pdfdoc .rv-row.bad { background: #fdf0f3; } .pdfdoc .rv-row.half { background: #fff8e6; }
@@ -1091,14 +1088,12 @@ function buildReview(D, onlyBad) {
   var root = h('div', { class: 'rv' });
   D.levels.forEach(function (l, i) {
     var head = h('div', { class: 'rv-lh' }, [h('span', { class: 'rv-n', text: String(i + 1) }), h('b', { text: l.t }), h('span', { class: 'rv-sc', text: l.s != null ? l.s + ' з ' + l.m : 'не пройдено' })]);
-    var sec = h('section', { class: 'rv-lv' }, [head]), first = true;
+    var sec = h('section', { class: 'rv-lv' }, [head]);
     if (!l.rows.length) sec.appendChild(h('p', { class: 'rv-empty', text: l.s == null ? 'Рівень ще не пройдено.' : 'Немає даних.' }));
     else if (onlyBad && l.rows.every(function (r) { return r.ok; })) sec.appendChild(h('p', { class: 'rv-empty ok', text: 'Без помилок!' }));
     rvChunks(D, i, l).forEach(function (ch) {
       var rows = onlyBad ? ch.rows.filter(function (r) { return !r.ok; }) : ch.rows;
-      /* Заголовок рівня не лишається сам унизу сторінки PDF: склеюємо його з малюнком чи першим питанням */
-      var add = function (el) { if (first) { var keep = h('div', { class: 'rv-keep' }); sec.replaceChild(keep, head); keep.appendChild(head); keep.appendChild(el); first = false; } else sec.appendChild(el); };
-      if (ch.fig && rows.length) add(rvFig(ch.fig));
+      if (ch.fig && rows.length) sec.appendChild(rvFig(ch.fig));
       rows.forEach(function (r) {
         var part = !r.ok && r.max != null && r.got > 0, kind = r.ok ? 'ok' : part ? 'half' : 'bad';
         var body = [h('div', { class: 'rv-q', text: r.q })];
@@ -1107,7 +1102,7 @@ function buildReview(D, onlyBad) {
         if (r.ok) body.push(ans('right', 'Відповідь:', r.right));
         else body.push(ans('mine', 'Твоя відповідь:', r.mine), ans('right', 'Правильно:', r.right));
         if (r.max != null && !r.ok) body.push(h('div', { class: 'rv-pts', text: 'Зараховано ' + r.got + ' з ' + r.max + ' балів' }));
-        add(h('div', { class: 'rv-row ' + kind }, [h('span', { class: 'rv-ic', 'aria-label': r.ok ? 'правильно' : part ? 'частково' : 'помилка', text: r.ok ? '✓' : part ? '½' : '✗' }),
+        sec.appendChild(h('div', { class: 'rv-row ' + kind }, [h('span', { class: 'rv-ic', 'aria-label': r.ok ? 'правильно' : part ? 'частково' : 'помилка', text: r.ok ? '✓' : part ? '½' : '✗' }),
           h('div', { class: 'rv-b' }, body), r.img ? h('img', { class: 'rv-img', src: r.img, alt: '' }) : null]));
       });
     });
@@ -1148,20 +1143,45 @@ function pdfMake(D, out) {
     return Promise.all([].map.call(el.querySelectorAll('img'), function (im) { return im.complete ? 0 : new Promise(function (ok) { im.onload = im.onerror = ok; }); })).then(function () { return [el, host]; });
   }).then(function (x) {
     var el = x[0], host = x[1];
-    /* Рівень, який вміщується на одну сторінку A4 (≈1000 px), переносимо цілим */
-    [].forEach.call(el.querySelectorAll('.rv-lv'), function (lv) { if (lv.offsetHeight < 980) lv.classList.add('rv-whole'); });
     var w = window.html2pdf().set({ margin: [8, 8, 10, 8], filename: pdfName(D), image: { type: 'jpeg', quality: 0.85 }, html2canvas: { scale: 2, backgroundColor: '#ffffff' },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }, pagebreak: { mode: ['css'], avoid: ['.rv-row', '.rv-lh', '.pd-head', '.pd-who', '.rv-empty', '.rv-fig', '.rv-keep', '.rv-whole'] } }).from(el);
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }, pagebreak: { mode: ['css'], avoid: ['.rv-row', '.rv-lh', '.pd-head', '.pd-who', '.rv-empty', '.rv-fig'] } }).from(el);
     var job = out === 'blob' ? w.outputPdf('blob') : w.save();
     return job.then(function (r) { host.remove(); return r; }, function (e) { host.remove(); throw e; });
   });
 }
+/* PDF відкривається в новій вкладці: вкладку відкриваємо одразу під час натискання (інакше браузер її заблокує),
+   а коли файл готовий, показуємо його там із кнопкою «Завантажити» */
+function pdfTab() {
+  var win = null; try { win = window.open('', '_blank'); } catch (e) {}
+  if (win) try { win.document.title = 'Готую PDF…'; win.document.body.style.cssText = 'margin:0;height:100vh;display:grid;place-items:center;background:#0f0c31;color:#fff;font:18px system-ui,sans-serif'; win.document.body.textContent = 'Готую PDF, зачекай кілька секунд…'; } catch (e) {}
+  return win;
+}
+function pdfShow(win, blob, name) {
+  var url = URL.createObjectURL(blob);
+  if (!win || win.closed) { var a = h('a', { href: url, download: name }); document.body.appendChild(a); a.click(); a.remove(); return 'saved'; }
+  // На телефоні вбудований переглядач показує PDF краще за сторінку з рамкою
+  if (window.matchMedia && matchMedia('(pointer: coarse)').matches) { win.location.href = url; return 'tab'; }
+  var d = win.document, b = d.body;
+  d.title = name; b.textContent = ''; b.style.cssText = 'margin:0;height:100vh;display:flex;flex-direction:column;background:#0f0c31;font:16px system-ui,sans-serif';
+  var bar = d.createElement('div'); bar.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 16px;color:#fff';
+  var t = d.createElement('b'); t.textContent = name; t.style.cssText = 'flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+  var dl = d.createElement('a'); dl.href = url; dl.download = name; dl.textContent = 'Завантажити PDF';
+  dl.style.cssText = 'flex:none;padding:10px 18px;border-radius:12px;background:#35e0f0;color:#04252c;font-weight:800;text-decoration:none';
+  var fr = d.createElement('iframe'); fr.src = url; fr.title = name; fr.style.cssText = 'flex:1;border:0;width:100%;background:#fff';
+  bar.appendChild(t); bar.appendChild(dl); b.appendChild(bar); b.appendChild(fr);
+  return 'tab';
+}
+function pdfOpen(D, win) {
+  return pdfMake(D, 'blob').then(function (blob) { return pdfShow(win, blob, pdfName(D)); }, function (e) { try { if (win) win.close(); } catch (x) {} throw e; });
+}
+function pdfDone(how, D) { toast(how === 'tab' ? 'PDF відкрито в новій вкладці.' : 'PDF збережено: ' + pdfName(D), 'ok'); }
 /* Кнопка, яка показує «Готую PDF…», поки файл створюється */
 function pdfButton(label, cls, getData, after) {
   var b = h('button', { class: cls, text: label, onclick: function () {
     var D = getData(); if (!D) return;
+    var win = pdfTab();
     b.disabled = true; b.textContent = 'Готую PDF…';
-    pdfMake(D).then(function () { toast('PDF збережено: ' + pdfName(D), 'ok'); if (after) after(); }, function () { toast('Не вдалося створити PDF. Перевір інтернет і спробуй ще раз.', 'bad'); })
+    pdfOpen(D, win).then(function (how) { pdfDone(how, D); if (after) after(); }, function () { toast('Не вдалося створити PDF. Перевір інтернет і спробуй ще раз.', 'bad'); })
       .then(function () { b.disabled = false; b.textContent = label; });
   } });
   return b;
@@ -1178,7 +1198,7 @@ function showReview() {
     }));
     box.appendChild(h('div', { class: 'card rv-top' }, [
       h('div', { class: 'stats' }, [stat(D.score + ' з ' + D.max, 'балів'), stat(c.bad, 'завдань з помилками', c.bad ? 'bad' : ''), D.grade != null ? stat(D.grade + ' / 12', 'оцінка') : null]),
-      seg, pdfButton('Завантажити PDF', 'btn', function () { return D; })]));
+      seg, pdfButton('Відкрити PDF', 'btn', function () { return D; })]));
     box.appendChild(buildReview(D, only));
   }
   // Учитель у режимі перегляду бачить розбір завжди, учні лише коли його відкрито на панелі
@@ -1462,12 +1482,13 @@ function showAdmin(cls, tab) {
         var pdfData = function (a) { return { name: a.first + ' ' + a.last, cls: cls, av: a.av, test: TESTS[curT], score: a.s, max: a.m, grade: a.g, date: a.t ? new Date(a.t).toLocaleDateString('uk-UA') : '', levels: unpackReview(a.rv) }; };
         var NO_RV = 'немає розбору: учень проходив контрольну до того, як на сайті з\'явився PDF.';
         var onePdf = function (b, r) {
+          var win = pdfTab();
           b.disabled = true; b.textContent = 'Готую…';
           getAnswers().then(function (m) {
             var a = m[(r.last + '|' + r.first).toLowerCase()];
-            if (!a || !a.rv) { toast(r.last + ' ' + r.first + ': ' + NO_RV, 'info'); return; }
-            var D = pdfData(a); return pdfMake(D).then(function () { toast('PDF збережено: ' + pdfName(D), 'ok'); });
-          }).catch(function (e) { toast(e && e.message === 'wrong key' ? 'Пароль змінився, увійди знову.' : 'Не вдалося створити PDF. Перевір інтернет і спробуй ще раз.', 'bad'); })
+            if (!a || !a.rv) { try { if (win) win.close(); } catch (x) {} toast(r.last + ' ' + r.first + ': ' + NO_RV, 'info'); return; }
+            var D = pdfData(a); return pdfOpen(D, win).then(function (how) { pdfDone(how, D); });
+          }).catch(function (e) { try { if (win) win.close(); } catch (x) {} toast(e && e.message === 'wrong key' ? 'Пароль змінився, увійди знову.' : 'Не вдалося створити PDF. Перевір інтернет і спробуй ще раз.', 'bad'); })
             .then(function () { b.disabled = false; b.textContent = 'PDF'; });
         };
         var zipBtn = rows.length ? h('button', { class: 'btn', text: 'PDF усього класу (архів)', onclick: function () {
