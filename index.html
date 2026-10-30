@@ -224,6 +224,8 @@
   .fb.ok { color: var(--green); } .fb.bad { color: var(--red); }
   .bar { height: 12px; background: rgba(0,0,0,.35); border-radius: 8px; overflow:hidden; margin: 6px 0 12px; }
   .bar > i { display:block; height:100%; width:100%; background: linear-gradient(90deg, var(--green), var(--yellow), var(--red)); background-size: 300% 100%; transition: width .1s linear; }
+  /* Довгі слова (наприклад, адреси IPv6) переносяться, а не вилазять за край */
+  .tile { max-width: 100%; overflow-wrap: anywhere; word-break: break-word; }
   .tile { background: var(--card2); border:2px solid var(--line); border-radius:15px; padding:10px 14px; cursor:pointer; color: var(--ink); text-align:left; min-height: 56px; display:flex; align-items:center; gap:10px; font-weight: 700; transition: border-color .12s, background .12s; }
   .tile:hover { border-color: var(--line-hi); }
   .tile.col { flex-direction: column; justify-content:center; text-align:center; }
