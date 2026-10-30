@@ -195,6 +195,16 @@
   .res-btns { display:flex; gap: 6px; justify-content: flex-end; }
   .res-btns .narrow { display: none; }
   @media (max-width: 560px) { .res-btns { flex-direction: column; align-items: stretch; } .res-btns .wide { display: none; } .res-btns .narrow { display: inline; } }
+  .accbox { flex: none; }
+  .acc { font: inherit; font-weight: 800; font-size: .85rem; border-radius: 12px; padding: 9px 12px; min-height: 40px; cursor: pointer; border: 2px solid var(--green); background: rgba(88,227,154,.14); color: var(--green); white-space: nowrap; }
+  .acc.shut { border-color: var(--red); background: rgba(255,111,138,.14); color: var(--red); }
+  .rv-banner { display:flex; gap: 12px; align-items:center; justify-content: space-between; flex-wrap: wrap; }
+  .rv-classes { display:grid; gap: 8px; margin: 10px 0 4px; }
+  .rv-cls { display:flex; align-items:center; gap: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 8px 10px 8px 14px; }
+  .rv-cls b { min-width: 42px; font-family: var(--display); }
+  .rv-cls .rv-pill { flex: 1; color: var(--muted); font-weight: 700; }
+  .rv-cls.on { border-color: var(--green); background: rgba(88,227,154,.12); }
+  .rv-cls.on .rv-pill { color: var(--green); }
   .res-tools { display:flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
   .zoomwrap { padding: 6px; margin: 0 0 12px; box-shadow: 0 8px 20px rgba(0,0,0,.3); }
   .zoom { aspect-ratio: 16 / 9; background-repeat: no-repeat; border-radius: 7px; background-color: #fff; }
@@ -507,6 +517,13 @@ function registerTest(def) { TESTS[def.id] = def; }
 function gradeOf(cls) { return parseInt(cls, 10) || 0; }
 function gradesList() { var g = []; CLASSES.forEach(function (c) { var x = gradeOf(c); if (g.indexOf(x) < 0) g.push(x); }); return g; }
 function testsOfGrade(g) { return Object.keys(TESTS).map(function (k) { return TESTS[k]; }).filter(function (t) { return t.grade === g; }).sort(function (a, b) { return a.quarter - b.quarter; }); }
+/* Розбір відкривається для кожного класу окремо (ключ «5-1@5-А»); «5-1» без класу — старий спосіб, для всієї паралелі */
+function reviewOpen(rv, test, cls) { return !!(rv && (rv[test] || rv[test + '@' + cls])); }
+function openReviews() {
+  var rv = (STATUS && STATUS.reviews) || {}, out = [];
+  Object.keys(rv).forEach(function (k) { if (!rv[k]) return; var p = k.split('@'); if (p[1]) out.push({ test: p[0], cls: p[1] }); else CLASSES.forEach(function (c) { if (String(gradeOf(c)) === p[0].split('-')[0]) out.push({ test: p[0], cls: c }); }); });
+  return out.sort(function (a, b) { return a.test.localeCompare(b.test) || a.cls.localeCompare(b.cls, 'uk'); });
+}
 function testLabel(id) { return TESTS[id] ? TESTS[id].label : (id || ''); }
 /* Слова для кодів класів: код виглядає як «5А-БАЙТ-47» */
 var CODE_WORDS = ['БАЙТ', 'БІТ', 'ПІКСЕЛЬ', 'ЧІП', 'ХМАРА', 'ВАЙФАЙ', 'РОУТЕР', 'СЕРВЕР', 'БРАУЗЕР', 'МИША', 'ДИСК', 'ПРОЦЕСОР', 'МОДЕМ', 'ПАКЕТ', 'СИГНАЛ', 'ЛОГІН', 'ФАЙЛ', 'ҐАДЖЕТ', 'КОМУТАТОР', 'КЛАВІША'];
@@ -911,6 +928,7 @@ function showGate(msg) {
     btn.disabled = true; setState('checking', 'Перевіряю код…');
     apiGet({ action: 'join', code: v }).then(function (r) {
       if (r && r.error === 'busy') { btn.disabled = false; bot.innerHTML = mascotSvg('sad'); setState('denied', 'Забагато неправильних спроб. Зачекай 2 хвилини й спробуй ще раз.'); return; }
+      if (r && r.error === 'closed') { btn.disabled = false; bot.innerHTML = mascotSvg('sad'); setState('denied', 'Код правильний, але вхід для класу ' + r.cls + ' зараз закрито. Зачекай, поки вчитель його відкриє.'); return; }
       if (!r || !r.ok) { btn.disabled = false; bot.innerHTML = mascotSvg('sad'); setState('denied', 'Код не підійшов. Перевір, чи правильно переписав.'); code.focus(); code.select(); return; }
       var had = !!(state.first.trim() && state.last.trim() && sstore('imi_started'));
       var prev = had && TEST ? { first: state.first.trim(), last: state.last.trim(), cls: state.cls, test: TEST.id } : null;
@@ -1209,7 +1227,7 @@ function showReview() {
   if (!apiEnabled() || isTeacher()) { draw(); return; }
   box.appendChild(h('div', { class: 'muted', text: 'Перевіряю, чи вчитель відкрив розбір…' }));
   apiGet({ action: 'status' }).then(function (r) {
-    if (r && r.reviews && TEST && r.reviews[TEST.id]) draw();
+    if (r && r.reviews && TEST && reviewOpen(r.reviews, TEST.id, state.cls)) draw();
     else { box.innerHTML = ''; box.appendChild(h('div', { class: 'warn', text: 'Розбір помилок ще закрито. Вчитель відкриє його, коли весь клас завершить роботу. Не обговорюй відповіді з іншими до цього часу.' })); toast('Розбір помилок поки закрито вчителем.', 'info'); }
   }).catch(function () { box.innerHTML = ''; box.appendChild(h('div', { class: 'warn', text: 'Не вдалося перевірити доступ до розбору. Спробуй пізніше.' })); toast('Немає зв\'язку. Спробуй пізніше.', 'bad'); });
 }
@@ -1413,6 +1431,22 @@ function showAdmin(cls, tab) {
   var tabs = h('div', { class: 'seg', role: 'tablist' }, TABS.map(function (t) { return h('button', { class: 'seg-b' + (t[0] === tab ? ' on' : ''), role: 'tab', 'aria-selected': t[0] === tab ? 'true' : 'false', text: t[1], onclick: function () { go(cls, t[0]); } }); }));
   var parts = [h('div', { class: 'topbar' }, [h('button', { class: 'btn alt', text: '‹ Гра', onclick: function () { stopAdminTimer(); location.hash = ''; route(); } }), h('b', { text: 'Панель вчителя' }),
     h('button', { class: 'btn alt', style: 'min-height:42px;padding:6px 14px', text: 'Вийти', onclick: function () { staffLogout(); location.hash = ''; route(); } })]), tabs];
+  /* Плашка з відкритими розборами на всіх вкладках, щоб не забути їх закрити */
+  var revBanner = h('div');
+  showAdmin.banner = function () {
+    revBanner.innerHTML = ''; var op = openReviews(); if (!op.length) return;
+    var byT = {}; op.forEach(function (o) { (byT[o.test] = byT[o.test] || []).push(o.cls); });
+    var closeAll = h('button', { class: 'btn alt', style: 'min-height:38px;padding:6px 14px', text: 'Закрити всі', onclick: function () {
+      if (!ask('Закрити розбір для всіх класів: ' + op.map(function (o) { return o.cls; }).join(', ') + '?')) return;
+      closeAll.disabled = true;
+      Promise.all(Object.keys(byT).map(function (t) { return apiPost({ action: 'setreview', key: k(), test: t, classes: byT[t], value: false }); }))
+        .then(function () { toast('Розбір закрито для всіх класів.', 'ok'); return refreshStatus(); }, function () { toast('Немає зв\'язку з таблицею.', 'bad'); })
+        .then(function () { closeAll.disabled = false; if (showAdmin.banner) showAdmin.banner(); if (showAdmin.revList) showAdmin.revList(); });
+    } });
+    revBanner.appendChild(h('div', { class: 'warn rv-banner' }, [h('div', {}, [h('b', { text: 'Розбір відповідей зараз відкрито: ' }),
+      Object.keys(byT).map(function (t) { return byT[t].join(', ') + ' (' + testLabel(t) + ')'; }).join('; ')]), closeAll]));
+  };
+  parts.push(revBanner); showAdmin.banner(); showAdmin.revList = null;
   var curT = adminTestFor(cls);
   if (tab !== 'settings') {
     parts.push(classTabs(cls, function (c) { go(c, tab); }));
@@ -1553,8 +1587,19 @@ function showAdmin(cls, tab) {
     } });
     box.appendChild(card('Активні контрольні', 'Для кожної паралелі обери контрольну, яку зараз пишуть учні. «Немає» — учні побачать, що контрольна ще не відкрита.', actRows.concat([actBtn])));
     /* Коди класів */
-    var codeIn = {};
-    var codeRows = CLASSES.map(function (c) { var inp = h('input', { type: 'text', class: 'codein', placeholder: 'Код для ' + c, maxlength: '30', 'aria-label': 'Код для ' + c }); codeIn[c] = inp; return h('div', { class: 'row setrow' }, [h('b', { class: 'setl', text: c }), inp]); });
+    var codeIn = {}, accBox = {}, closed = null;
+    /* Перемикач входу за кодом: зачинений клас не може увійти, код при цьому зберігається */
+    var drawAcc = function (c) {
+      var bx = accBox[c]; bx.innerHTML = ''; if (!closed) { bx.appendChild(h('span', { class: 'muted', text: '…' })); return; }
+      var shut = closed.indexOf(c) >= 0, b = h('button', { class: 'acc' + (shut ? ' shut' : ''), 'aria-pressed': shut ? 'false' : 'true', title: shut ? 'Натисни, щоб відкрити вхід' : 'Натисни, щоб закрити вхід',
+        text: shut ? '🔒 Вхід закрито' : '🔓 Вхід відкрито', onclick: function () {
+          act(b, function () { return apiPost({ action: 'setaccess', key: k(), classes: [c], open: shut }).then(function (r) { if (r && r.closed) closed = r.closed; return r; }); },
+            shut ? 'Вхід для ' + c + ' відкрито: код працює.' : 'Вхід для ' + c + ' закрито: код не пускає нових учнів.', function () { CLASSES.forEach(drawAcc); });
+        } });
+      bx.appendChild(b);
+    };
+    var codeRows = CLASSES.map(function (c) { var inp = h('input', { type: 'text', class: 'codein', placeholder: 'Код для ' + c, maxlength: '30', 'aria-label': 'Код для ' + c }); codeIn[c] = inp; accBox[c] = h('span', { class: 'accbox' }); return h('div', { class: 'row setrow' }, [h('b', { class: 'setl', text: c }), inp, accBox[c]]); });
+    CLASSES.forEach(drawAcc);
     var genBtn = h('button', { class: 'btn alt', text: 'Згенерувати нові коди', onclick: function () {
       if (CLASSES.some(function (c) { return codeIn[c].value; }) && !ask('Замінити всі коди новими? Старі коди перестануть працювати, щойно збережеш.')) return;
       CLASSES.forEach(function (c) { codeIn[c].value = genCode(c); }); toast('Нові коди згенеровано. Натисни «Зберегти коди».', 'info');
@@ -1563,22 +1608,33 @@ function showAdmin(cls, tab) {
       var m = {}; CLASSES.forEach(function (c) { m[c] = codeIn[c].value.trim(); });
       act(codeBtn, function () { return apiPost({ action: 'setcodes', key: k(), codes: m }); }, 'Коди класів збережено.');
     } });
-    box.appendChild(card('Коди доступу класів', 'Учень вводить код свого класу, і сайт сам визначає клас і контрольну. Без коду зайти неможливо. Якщо змінити код, усі, хто зайшов зі старим, мають ввести новий. Порожнє поле закриває вхід для класу.', codeRows.concat([h('div', { class: 'row', style: 'margin-top:8px' }, [genBtn, codeBtn])])));
-    apiPost({ action: 'getcodes', key: k() }).then(function (r) { if (r && r.codes) CLASSES.forEach(function (c) { if (!codeIn[c].value) codeIn[c].value = r.codes[c] || ''; }); }).catch(function () {});
+    box.appendChild(card('Коди доступу класів', 'Учень вводить код свого класу, і сайт сам визначає клас і контрольну. Кнопка біля коду відкриває чи закриває вхід: коли вхід закрито, код не пускає нових учнів, а ті, хто вже працює, можуть завершити роботу. Якщо змінити код, усі, хто зайшов зі старим, мають ввести новий.', codeRows.concat([h('div', { class: 'row', style: 'margin-top:8px' }, [genBtn, codeBtn])])));
+    apiPost({ action: 'getcodes', key: k() }).then(function (r) { if (r && r.codes) CLASSES.forEach(function (c) { if (!codeIn[c].value) codeIn[c].value = r.codes[c] || ''; }); if (r && r.closed) { closed = r.closed; CLASSES.forEach(drawAcc); } }).catch(function () {});
     /* Розбір помилок і нова спроба для вибраної контрольної */
     var curS = sstore('imi_stest'); if (!TESTS[curS]) { curS = ''; gradesList().some(function (g) { var a = ACTIVE[String(g)]; if (TESTS[a]) { curS = a; return true; } return false; }); if (!curS && allTests.length) curS = allTests[0].id; }
-    var revstat = h('p', { class: 'muted', text: 'Статус: перевіряю…' });
-    var revStatus = function () { refreshStatus().then(function () { revstat.textContent = 'Розбір помилок: ' + (STATUS && STATUS.reviews && STATUS.reviews[curS] ? 'ВІДКРИТО для учнів' : 'закрито'); }); };
-    var tSel = h('select', { 'aria-label': 'Контрольна', onchange: function () { curS = tSel.value; sstore('imi_stest', curS); revStatus(); } }, allTests.map(function (t) { return h('option', { value: t.id, text: t.label, selected: t.id === curS ? 'selected' : null }); }));
-    var setReview = function (v, btn) { act(btn, function () { return apiPost({ action: 'setreview', key: k(), test: curS, value: v }); }, v ? 'Розбір помилок відкрито: учні вже можуть його переглянути.' : 'Розбір помилок закрито для учнів.', revStatus); };
-    var openBtn = h('button', { class: 'btn ok', text: 'Відкрити розбір', onclick: function () { setReview(true, openBtn); } });
-    var closeBtn = h('button', { class: 'btn alt', text: 'Закрити розбір', onclick: function () { setReview(false, closeBtn); } });
+    var revList = h('div', { class: 'rv-classes' });
+    var revStatus = function () { return refreshStatus().then(function () { showAdmin.revList(); showAdmin.banner(); }); };
+    var tSel = h('select', { 'aria-label': 'Контрольна', onchange: function () { curS = tSel.value; sstore('imi_stest', curS); showAdmin.revList(); } }, allTests.map(function (t) { return h('option', { value: t.id, text: t.label, selected: t.id === curS ? 'selected' : null }); }));
+    var setReview = function (classes, v, btn) { act(btn, function () { return apiPost({ action: 'setreview', key: k(), test: curS, classes: classes, value: v }); }, (v ? 'Розбір відкрито: ' : 'Розбір закрито: ') + classes.join(', ') + '.', revStatus); };
+    /* Кожен клас паралелі окремим рядком: статус і кнопка */
+    showAdmin.revList = function () {
+      revList.innerHTML = '';
+      var T = TESTS[curS], cl = T ? CLASSES.filter(function (c) { return gradeOf(c) === T.grade; }) : [], rv = STATUS && STATUS.reviews;
+      cl.forEach(function (c) {
+        var on = reviewOpen(rv, curS, c), b = h('button', { class: 'btn ' + (on ? 'alt' : 'ok'), style: 'min-height:40px;padding:6px 14px', text: on ? 'Закрити' : 'Відкрити', onclick: function () { setReview([c], !on, b); } });
+        revList.appendChild(h('div', { class: 'rv-cls' + (on ? ' on' : '') }, [h('b', { text: c }), h('span', { class: 'rv-pill', text: on ? 'Відкрито для учнів' : 'Закрито' }), b]));
+      });
+      if (!cl.length) revList.appendChild(h('p', { class: 'muted', text: 'Для цієї контрольної немає класів.' }));
+      var allOn = h('button', { class: 'btn ok', text: 'Відкрити для всіх', onclick: function () { setReview(cl, true, allOn); } });
+      var allOff = h('button', { class: 'btn alt', text: 'Закрити для всіх', onclick: function () { setReview(cl, false, allOff); } });
+      if (cl.length > 1) revList.appendChild(h('div', { class: 'row', style: 'margin-top:10px' }, [allOn, allOff]));
+    };
     var roundBtn = h('button', { class: 'btn bad', text: 'Почати нову спробу', onclick: function () {
       if (!ask('Почати нову спробу контрольної «' + testLabel(curS) + '»? Її результати й прогрес у всіх класах буде видалено, а в учнів скинуться пройдені рівні.')) return;
       if (!ask('Точно? Цю дію не можна скасувати.')) return;
       act(roundBtn, function () { return apiPost({ action: 'newround', key: k(), test: curS }); }, 'Нову спробу розпочато: учні почнуть «' + testLabel(curS) + '» з чистого аркуша.', revStatus);
     } });
-    box.appendChild(card('Розбір помилок і нова спроба', 'Ці дії стосуються вибраної контрольної.', [tSel, revstat, h('div', { class: 'row' }, [openBtn, closeBtn]),
+    box.appendChild(card('Розбір відповідей і нова спроба', 'Обери контрольну й відкривай розбір для кожного класу окремо. Учні класу побачать свої відповіді й зможуть відкрити PDF.', [tSel, revList,
       h('p', { class: 'muted', style: 'margin:14px 0 8px', text: 'Нова спроба: після тренування натисни, щоб почати справжню контрольну з чистого аркуша. Її результати й прогрес очищаються, а в учнів скидаються пройдені рівні (ім\'я та аватарка лишаються).' }), roundBtn]));
     /* Режим вчителя */
     var ttSel = h('select', { 'aria-label': 'Контрольна для перегляду' }, allTests.map(function (t) { return h('option', { value: t.id, text: t.label, selected: t.id === (sstore('imi_ttest') || curS) ? 'selected' : null }); }));
@@ -1590,7 +1646,7 @@ function showAdmin(cls, tab) {
         .catch(function () { tBtn.disabled = false; toast('Немає зв\'язку з таблицею.', 'bad'); });
     } });
     box.appendChild(card('Режим вчителя', 'Пройди будь-яку контрольну як учень, але без запису: тебе не буде в прогресі, на телевізорі й у таблиці лідерів. Пройдені рівні можна відкривати знову.', [ttSel, tBtn]));
-    revStatus();
+    showAdmin.revList(); revStatus();
   }
 }
 function stat(n, label, cls) { return h('div', { class: 'stat' + (cls ? ' ' + cls : '') }, [h('b', { text: String(n) }), h('span', { text: label })]); }

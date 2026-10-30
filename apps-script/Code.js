@@ -83,6 +83,7 @@ function testFor_(cls, t) { if (okTest_(t)) return String(t); var a = active_()[
 var LOOK = { a: 'а', b: 'в', c: 'с', e: 'е', h: 'н', i: 'і', k: 'к', m: 'м', o: 'о', p: 'р', t: 'т', x: 'х', y: 'у' };
 function normCode_(v) { return String(v || '').toLowerCase().replace(/[\s\-–—_.]+/g, '').replace(/[abcehikmoptxy]/g, function (ch) { return LOOK[ch]; }); }
 function codes_() { var cs = {}, ap = props_().getProperties(); Object.keys(ap).forEach(function (k) { if (k.indexOf('ccode:') === 0 && ap[k]) cs[k.slice(6)] = ap[k]; }); return cs; }
+function closedList_() { var ap = props_().getProperties(); return Object.keys(ap).filter(function (k) { return k.indexOf('closed:') === 0; }).map(function (k) { return k.slice(7); }); }
 function codeOk_(cls, code) { var c = props_().getProperty('ccode:' + cls); return !!c && normCode_(code) === normCode_(c); }
 
 function sheetName_(cls, test) { return cls + SEP + test; }
@@ -284,10 +285,22 @@ function doPost(e) {
       Object.keys(nc).forEach(function (c) { var v = String(nc[c] || '').trim().slice(0, 30); if (v) props_().setProperty('ccode:' + c, v); else props_().deleteProperty('ccode:' + c); });
       return out_({ ok: true, codes: codes_() });
     }
-    if (act === 'getcodes') return out_({ ok: true, codes: codes_() });
+    if (act === 'getcodes') return out_({ ok: true, codes: codes_(), closed: closedList_() });
+    if (act === 'setaccess') {
+      // Вхід за кодом класу можна тимчасово закрити, не стираючи код (властивість closed:<клас>)
+      var acs = (Array.isArray(d.classes) ? d.classes : [d.cls]).filter(function (c) { return CLASS_RE.test(String(c)); });
+      if (!acs.length) return out_({ ok: false, error: 'bad class' });
+      acs.forEach(function (c) { if (d.open) props_().deleteProperty('closed:' + c); else props_().setProperty('closed:' + c, '1'); });
+      return out_({ ok: true, closed: closedList_() });
+    }
     if (act === 'setreview') {
+      // Розбір відкривається для кожного класу окремо: властивість review:<контрольна>@<клас>
       if (!okTest_(d.test)) return out_({ ok: false, error: 'bad test' });
-      props_().setProperty('review:' + d.test, d.value ? '1' : '0'); return out_({ ok: true });
+      var rt = String(d.test), rcs = (Array.isArray(d.classes) ? d.classes : [d.cls]).filter(function (c) { return CLASS_RE.test(String(c)) && gradeOf_(c) === rt.split('-')[0]; });
+      if (!rcs.length) return out_({ ok: false, error: 'bad class' });
+      rcs.forEach(function (c) { if (d.value) props_().setProperty('review:' + rt + '@' + c, '1'); else props_().deleteProperty('review:' + rt + '@' + c); });
+      props_().deleteProperty('review:' + rt);
+      return out_({ ok: true });
     }
     if (act === 'newround') {
       // Нова спроба контрольної: очищаємо її результати й прогрес, а пристрої учнів скинуть локальні дані за номером спроби
@@ -297,7 +310,9 @@ function doPost(e) {
       var ps4 = progSheet_(), pd4 = rows_(ps4);
       for (var r4 = pd4.length - 1; r4 >= 0; r4--) if (tval_(pd4[r4][C_TEST]) === t) ps4.deleteRow(r4 + 2);
       var round = (Number(props_().getProperty('round:' + t)) || 1) + 1;
-      props_().setProperty('round:' + t, String(round)); props_().setProperty('review:' + t, '0'); progDirty_();
+      props_().setProperty('round:' + t, String(round)); props_().deleteProperty('review:' + t);
+      Object.keys(props_().getProperties()).forEach(function (k) { if (k.indexOf('review:' + t + '@') === 0) props_().deleteProperty(k); });
+      progDirty_();
       return out_({ ok: true, round: round });
     }
     if (!CLASS_RE.test(String(d.cls))) return out_({ ok: false, error: 'bad class' });
@@ -343,6 +358,8 @@ function doGet(e) {
     var n = normCode_(p.code), cs = codes_(), found = '';
     if (n) Object.keys(cs).forEach(function (c) { if (normCode_(cs[c]) === n) found = c; });
     if (!found) { failed_('join'); return out_({ ok: false }); }
+    // Закритий вхід не пускає нових учнів; ті, хто вже працює, можуть завершити й надіслати результат
+    if (props_().getProperty('closed:' + found)) return out_({ ok: false, error: 'closed', cls: found });
     return out_({ ok: true, cls: found, test: testFor_(found, '') });
   }
   var cls = p['class'];
