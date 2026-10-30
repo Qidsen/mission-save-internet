@@ -38,16 +38,17 @@ function staleRound_(d) { return d.round != null && d.round !== '' && Number(d.r
 var AV_RE = /^[a-z]{2,12}\.[0-9]$/;
 function av_(v) { v = String(v || ''); return AV_RE.test(v) ? v : ''; }
 
-/* Розбір відповідей учня для PDF: [{ t, s, m, r: [[питання, відповідь, правильна, 0/1, бал, максимум]] }].
+/* Розбір відповідей учня для PDF: [{ t, s, m, r: [[питання, відповідь, правильна, 0/1, бал, максимум, малюнок]] }].
    Зберігаємо очищений JSON в одній клітинці (ліміт клітинки 50 000 символів). */
 function review_(lv) {
   if (!Array.isArray(lv)) return '';
-  function str(v, n) { return String(v == null ? '' : v).replace(/[\r\n\t]+/g, ' ').slice(0, n); }
+  function str(v, n) { return String(v == null ? '' : v).replace(/[\r\t]+/g, ' ').slice(0, n); }
   var out = lv.slice(0, 40).map(function (l) {
     l = l || {};
     return { t: str(l.t, 80), s: l.s == null ? null : num_(l.s, 1000), m: num_(l.m, 1000), r: (Array.isArray(l.r) ? l.r : []).slice(0, 80).map(function (a) {
-      a = Array.isArray(a) ? a : []; var x = [str(a[0], 300), str(a[1], 300), str(a[2], 300), a[3] ? 1 : 0];
-      if (a.length > 5) x.push(num_(a[4], 100), num_(a[5], 100));
+      a = Array.isArray(a) ? a : []; var x = [str(a[0], 300), str(a[1], 600), str(a[2], 600), a[3] ? 1 : 0];
+      if (a.length > 5) x.push(a[5] == null ? null : num_(a[4], 100), a[5] == null ? null : num_(a[5], 100));
+      if (a.length > 6 && /^media\/[\w\-.\/]{1,80}$/.test(String(a[6]))) x.push(String(a[6]));
       return x;
     }) };
   });
