@@ -298,6 +298,8 @@
   .post-head { display:flex; gap:10px; align-items:center; margin-bottom: 8px; }
   .post-ava { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #d6d9f2, #9aa0c8); flex:none; }
   .post-head small { display:block; color:#7a7fa8; font-size: .8rem; }
+  .mail-head { border-bottom: 1px solid #e4e6f5; padding: 2px 4px 10px; margin-bottom: 8px; font-size: .92rem; display:grid; gap: 3px; overflow-wrap: anywhere; }
+  .mail-head span { color: #7a7fa8; }
   .frag { position: relative; display:block; width:100%; text-align:left; font: inherit; font-weight: 600; line-height: 1.4; background: transparent; color: inherit; border: 2px dashed transparent; border-radius: 12px; padding: 8px 10px 8px 34px; margin: 2px 0; cursor:pointer; }
   .frag::before { content:""; position:absolute; left: 10px; top: 11px; width: 14px; height: 14px; border-radius: 4px; border: 2px solid #c3c6e6; }
   .frag:hover { background: #f4f5ff; }
@@ -1688,6 +1690,12 @@ function postView(it, cur, pick) {
   it.opts.forEach(function (o) { body.appendChild(h('button', { class: 'frag' + (cur.indexOf(o) >= 0 ? ' sel' : ''), 'aria-pressed': cur.indexOf(o) >= 0 ? 'true' : 'false', text: o, onclick: function () { pick(o); } })); });
   return h('div', { class: 'post' }, [h('div', { class: 'post-head' }, [h('span', { class: 'post-ava', 'aria-hidden': 'true' }), h('div', {}, [h('b', { text: 'Допис у соцмережі' }), h('small', { text: 'Поширено 12 тис. разів' })])]), body]);
 }
+/* Електронний лист, у якому треба позначити підозрілі частини (mail: { from, subj }) */
+function mailView(it, cur, pick) {
+  var body = h('div', { class: 'post-body' }), m = it.mail || {};
+  it.opts.forEach(function (o) { body.appendChild(h('button', { class: 'frag' + (cur.indexOf(o) >= 0 ? ' sel' : ''), 'aria-pressed': cur.indexOf(o) >= 0 ? 'true' : 'false', text: o, onclick: function () { pick(o); } })); });
+  return h('div', { class: 'post mail' }, [h('div', { class: 'mail-head' }, [h('div', {}, [h('span', { text: 'Тема: ' }), h('b', { text: m.subj || '' })]), m.from ? h('div', {}, [h('span', { text: 'Від: ' }), h('b', { text: m.from })]) : null]), body]);
+}
 
 /* ---------- Сторінки рівня ----------
    Рівень складається зі сторінок (частин). Між ними можна ходити «Назад» і «Далі»,
@@ -1698,7 +1706,7 @@ function pgSort(R) { return { type: 'sort', R: R }; }
 function pgOrder(R) { return { type: 'order', R: R, lead: 'Натискай картки по черзі, щоб пронумерувати їх. Повторне натискання прибирає номер. Чим менше карток не на своєму місці, тим більше балів.' }; }
 
 function choiceItems(pg, st) {
-  return pg.Q.map(function (q, k) { return { head: q.head, text: q.text, hint: q.hint, view: q.view, multi: !!q.multi, opts: st.ord[k], correct: q.multi ? q.ok : [q.ok], pts: q.pts || 1, img: q.img, alt: q.alt }; });
+  return pg.Q.map(function (q, k) { return { head: q.head, text: q.text, hint: q.hint, view: q.view, mail: q.mail, multi: !!q.multi, opts: st.ord[k], correct: q.multi ? q.ok : [q.ok], pts: q.pts || 1, img: q.img, alt: q.alt }; });
 }
 function choicePts(it, got) {
   var err = 0; it.correct.forEach(function (o) { if (got.indexOf(o) < 0) err++; }); got.forEach(function (o) { if (it.correct.indexOf(o) < 0) err++; });
@@ -1740,7 +1748,7 @@ var PAGE = {
         if (it.img) card.appendChild(photo(it.img, it.alt));
         card.appendChild(h('div', { class: 'qtitle' }, [h('span', { class: 'qn', text: String(pos + 1) }), h('b', { text: it.text })]));
         if (it.hint) card.appendChild(h('p', { class: 'muted', text: it.hint }));
-        function draw() { slot.innerHTML = ''; slot.appendChild((it.view === 'addr' ? addrView : it.view === 'post' ? postView : optTiles)(it, st.sel[k] || [], pick)); }
+        function draw() { slot.innerHTML = ''; slot.appendChild((it.view === 'addr' ? addrView : it.view === 'post' ? postView : it.view === 'mail' ? mailView : optTiles)(it, st.sel[k] || [], pick)); }
         function pick(o) {
           var cur = (st.sel[k] || []).slice();
           if (it.multi) { var ix = cur.indexOf(o); if (ix >= 0) cur.splice(ix, 1); else cur.push(o); } else cur = [o];
@@ -1950,6 +1958,7 @@ function playBlitz(done, l) {
 <!-- Контрольні. Нова контрольна = новий файл у папці tests і рядок тут. -->
 <script src="tests/5-1.js"></script>
 <script src="tests/6-1.js"></script>
+<script src="tests/7-1.js"></script>
 <script>
 'use strict';
 /* Стан із сервера: активні контрольні, номери спроб, відкриті розбори */
