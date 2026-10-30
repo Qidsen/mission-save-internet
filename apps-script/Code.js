@@ -259,7 +259,15 @@ function doPost(e) {
       Object.keys(src).forEach(function (g) { if (/^\d{1,2}$/.test(g) && (src[g] === '' || okTest_(src[g]))) a[g] = src[g]; });
       props_().setProperty('active', JSON.stringify(a));
       var kn = known_(); Object.keys(a).forEach(function (g) { if (a[g]) kn[a[g]] = 1; }); props_().setProperty('known', JSON.stringify(Object.keys(kn)));
+      // Аркуші результатів для класів паралелі з'являються одразу, а не після першого учня
+      Object.keys(a).forEach(function (g) { if (a[g]) Object.keys(codes_()).forEach(function (c) { if (gradeOf_(c) === g) sheet_(c, a[g]); }); });
       return out_({ ok: true, active: a });
+    }
+    if (act === 'prepare') {
+      // Порожній аркуш результатів для класу й контрольної (наприклад, наперед для наступної чверті)
+      if (!CLASS_RE.test(String(d.cls)) || !okTest_(d.test)) return out_({ ok: false, error: 'bad class' });
+      sheet_(String(d.cls), String(d.test));
+      return out_({ ok: true, sheet: sheetName_(String(d.cls), String(d.test)) });
     }
     if (act === 'setcodes') {
       // Коди класів мають бути різними, від 3 символів; порожній код закриває вхід для класу
