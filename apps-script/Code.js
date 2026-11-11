@@ -175,6 +175,55 @@ function tick_(d) {
   return out_({ ok: true });
 }
 
+/* Чернетки: повний стан контрольної учня (рівні, відповіді, виходи), щоб продовжити з іншого пристрою.
+   Пристрій-власник записує чернетку; інший пристрій забирає її лише з 4-значним кодом продовження. */
+var DRAFT = 'Чернетки';
+var DHEAD = ['Оновлено', 'Клас', 'Контрольна', 'Прізвище', "Ім'я", 'Код продовження', 'Пристрій', 'Мітка', 'Бали за рівні', 'Дані'];
+var D_PIN = 5, D_DEV = 6, D_TS = 7, D_SC = 8, D_DATA = 9, D_PARTS = 6, D_PART = 45000;
+/* Бали за пройдені рівні: { id рівня: бал }, для панелі вчителя */
+function scores_(o) { var r = {}; if (o && typeof o === 'object') Object.keys(o).slice(0, 40).forEach(function (k) { if (/^[\w-]{1,30}$/.test(k) && o[k] != null) r[k] = num_(o[k], 1000); }); return r; }
+var PIN_RE = /^\d{4}$/;
+function draftSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet(), sh = ss.getSheetByName(DRAFT);
+  if (!sh) { sh = ss.insertSheet(DRAFT); sh.getRange(1, 1, 1, DHEAD.length).setValues([DHEAD]).setFontWeight('bold'); sh.setFrozenRows(1); sh.hideSheet(); }
+  return sh;
+}
+function draftRows_(sh) { var n = sh ? sh.getLastRow() : 0; return n < 2 ? [] : sh.getRange(2, 1, n - 1, D_DATA).getValues(); }
+function draftFind_(sh, cls, test, last, first) {
+  var data = draftRows_(sh);
+  for (var i = 0; i < data.length; i++) if (data[i][1] === cls && tval_(data[i][2]) === test && same_(data[i][3], last) && same_(data[i][4], first)) return i + 2;
+  return 0;
+}
+/* Кожна частина даних починається з «x», щоб таблиця не прийняла її за формулу чи число */
+function draftData_(sh, at) { return sh.getRange(at, D_DATA + 1, 1, D_PARTS).getValues()[0].map(function (v) { return String(v).slice(1); }).join(''); }
+/* Чи можна цьому пристрою працювати над контрольною учня: '' — так, 'moved' — продовжено на іншому пристрої з тим самим кодом,
+   'taken' — робота учня з таким ім'ям уже є в таблиці (інший пристрій або цей самий, де локальні дані стерто): потрібен код продовження */
+function draftCheck_(r, dev, pin, fresh) {
+  var owner = String(r[D_DEV]), same = !!pin && strip_(r[D_PIN]) === String(pin);
+  if (!owner || owner === dev) return fresh && !same ? 'taken' : '';
+  return same ? 'moved' : 'taken';
+}
+function draftBlock_(cls, test, last, first, dev, pin, fresh) {
+  if (!dev) return '';
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(DRAFT); if (!sh) return '';
+  var at = draftFind_(sh, cls, test, last, first); if (!at) return '';
+  return draftCheck_(sh.getRange(at, 1, 1, D_DATA).getValues()[0], dev, pin, fresh);
+}
+function draftDrop_(fn) {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(DRAFT), data = draftRows_(sh);
+  for (var i = data.length - 1; i >= 0; i--) if (fn(data[i])) sh.deleteRow(i + 2);
+  CacheService.getScriptCache().remove('pins');
+}
+/* Коди продовження для панелі вчителя (якщо учень забув свій) */
+function draftPins_() {
+  var c = CacheService.getScriptCache(), raw = c.get('pins');
+  if (raw) return JSON.parse(raw);
+  var m = {};
+  draftRows_(SpreadsheetApp.getActiveSpreadsheet().getSheetByName(DRAFT)).forEach(function (r) { var sc = {}; try { sc = JSON.parse(String(r[D_SC]) || '{}'); } catch (x) {} m[tickKey_(r[1], tval_(r[2]), r[3], r[4])] = { pin: strip_(r[D_PIN]), sc: sc }; });
+  try { c.put('pins', JSON.stringify(m), 60); } catch (x) {}
+  return m;
+}
+
 function doPost(e) {
   var d0;
   try { d0 = JSON.parse(e.postData.contents); } catch (x) { return out_({ ok: false, error: 'bad json' }); }
@@ -191,6 +240,8 @@ function doPost(e) {
       if (staleRound_(d)) return out_({ ok: false, error: 'old round' });
       var pf = clean_(d.first), pl = clean_(d.last), test = String(d.test), dev = dev_(d.dev);
       if (!pf || !pl) return out_({ ok: false, error: 'name required' });
+      var pblk = draftBlock_(d.cls, test, pl, pf, dev, d.pin, !!d.fresh);
+      if (pblk) return out_({ ok: false, error: pblk });
       var ps = progSheet_(), ts = Number(d.ts) || 0;
       // Учень виправив ім'я, прізвище чи клас: прибираємо його старий рядок
       if (d.prev && CLASS_RE.test(String(d.prev.cls))) {
@@ -210,6 +261,38 @@ function doPost(e) {
       return out_({ ok: true });
     }
 
+    if (act === 'save' || act === 'resume') {
+      if (!CLASS_RE.test(String(d.cls)) || !okTest_(d.test) || !known_()[d.test]) return out_({ ok: false, error: 'bad class' });
+      if (!codeOk_(d.cls, d.code)) return out_({ ok: false, error: 'bad code' });
+      var df = clean_(d.first), dl = clean_(d.last), dt0 = String(d.test), ddev = dev_(d.dev), pin = String(d.pin || '');
+      if (!df || !dl) return out_({ ok: false, error: 'name required' });
+      if (!ddev || !PIN_RE.test(pin)) return out_({ ok: false, error: 'bad pin' });
+      var dsh = draftSheet_(), dat = draftFind_(dsh, d.cls, dt0, dl, df);
+      if (act === 'resume') {
+        // Не більше 6 спроб коду за 2 хвилини для одного учня
+        var bk = 'pin|' + tickKey_(d.cls, dt0, dl, df);
+        if (blocked_(bk, 6)) return out_({ ok: false, error: 'busy' });
+        if (!dat) return out_({ ok: false, error: 'none' });
+        var cur = dsh.getRange(dat, 1, 1, D_DATA).getValues()[0];
+        if (strip_(cur[D_PIN]) !== pin) { failed_(bk); return out_({ ok: false, error: 'wrong pin' }); }
+        dsh.getRange(dat, D_DEV + 1).setValue(ddev);
+        return out_({ ok: true, first: strip_(cur[4]), last: strip_(cur[3]), data: draftData_(dsh, dat) });
+      }
+      if (staleRound_(d)) return out_({ ok: false, error: 'old round' });
+      var data0 = String(d.data || ''), dts = Number(d.ts) || Date.now();
+      if (!data0 || data0.length > D_PART * D_PARTS) return out_({ ok: false, error: 'bad data' });
+      if (dat) {
+        var was = dsh.getRange(dat, 1, 1, D_DATA).getValues()[0], blk = draftCheck_(was, ddev, pin, !!d.fresh);
+        if (blk) return out_({ ok: false, error: blk });
+        if (Number(was[D_TS]) > dts) return out_({ ok: true, stale: true });
+      }
+      var drow = [new Date(), d.cls, "'" + dt0, dl, df, "'" + pin, ddev, dts, JSON.stringify(scores_(d.sc))];
+      for (var pi = 0; pi < D_PARTS; pi++) { var part = data0.slice(pi * D_PART, (pi + 1) * D_PART); drow.push(part ? 'x' + part : ''); }
+      if (dat) dsh.getRange(dat, 1, 1, drow.length).setValues([drow]); else dsh.appendRow(drow);
+      CacheService.getScriptCache().remove('pins');
+      return out_({ ok: true });
+    }
+
     if (act === 'submit') {
       if (!CLASS_RE.test(String(d.cls)) || !okTest_(d.test) || !known_()[d.test]) return out_({ ok: false, error: 'bad class' });
       if (!codeOk_(d.cls, d.code)) return out_({ ok: false, error: 'bad code' });
@@ -218,6 +301,8 @@ function doPost(e) {
       var score = Number(d.score), max = Number(d.max), grade = Number(d.grade), stars = num_(d.stars, 1000);
       if (!first || !last) return out_({ ok: false, error: 'name required' });
       if (!(max > 0 && max <= 1000) || !(score >= 0 && score <= max) || !(grade >= 1 && grade <= 12)) return out_({ ok: false, error: 'bad numbers' });
+      var sblk = draftBlock_(d.cls, String(d.test), last, first, sdev, d.pin, !!d.fresh);
+      if (sblk) return out_({ ok: false, error: sblk });
       // Учень перейшов у правильний клас або виправив ім'я після завершення: прибираємо стару оцінку.
       // Це можна лише з правильним кодом того класу, де лежить стара оцінка, і лише з того самого пристрою.
       var pv = d.prev;
@@ -309,6 +394,7 @@ function doPost(e) {
       ss.getSheets().forEach(function (x) { var nm = x.getName(); if (nm.slice(-(SEP + t).length) === SEP + t) { var lr = x.getLastRow(); if (lr > 1) x.deleteRows(2, lr - 1); } });
       var ps4 = progSheet_(), pd4 = rows_(ps4);
       for (var r4 = pd4.length - 1; r4 >= 0; r4--) if (tval_(pd4[r4][C_TEST]) === t) ps4.deleteRow(r4 + 2);
+      draftDrop_(function (r) { return tval_(r[2]) === t; });
       var round = (Number(props_().getProperty('round:' + t)) || 1) + 1;
       props_().setProperty('round:' + t, String(round)); props_().deleteProperty('review:' + t);
       Object.keys(props_().getProperties()).forEach(function (k) { if (k.indexOf('review:' + t + '@') === 0) props_().deleteProperty(k); });
@@ -323,6 +409,7 @@ function doPost(e) {
       for (var j = data2.length - 1; j >= 0; j--) if (same_(data2[j][2], d.last) && same_(data2[j][3], d.first)) sh2.deleteRow(j + 2);
       var ps2 = progSheet_(), at2 = progFind_(ps2, d.cls, dt, d.last, d.first);
       if (at2) ps2.deleteRow(at2);
+      draftDrop_(function (r) { return r[1] === d.cls && tval_(r[2]) === dt && same_(r[3], d.last) && same_(r[4], d.first); });
       progDirty_();
       return out_({ ok: true });
     }
@@ -331,6 +418,7 @@ function doPost(e) {
       if (n > 1) sh3.deleteRows(2, n - 1);
       var ps3 = progSheet_(), pdata = rows_(ps3);
       for (var q = pdata.length - 1; q >= 0; q--) if (pdata[q][1] === d.cls && (tval_(pdata[q][C_TEST]) === dt || !okTest_(tval_(pdata[q][C_TEST])))) ps3.deleteRow(q + 2);
+      draftDrop_(function (r) { return r[1] === d.cls && tval_(r[2]) === dt; });
       progDirty_();
       return out_({ ok: true });
     }
@@ -381,6 +469,7 @@ function doGet(e) {
         r.pct = Math.max(r.pct, x.pct); r.now = x.now || r.now; r.out = x.out; r.t = Math.max(r.t, x.srv);
       });
     }
+    if (p.action === 'live' && live.length) { var pins = draftPins_(); live.forEach(function (r) { var x = pins[tickKey_(cls, test, r.last, r.first)]; r.pin = x ? x.pin : ''; r.lv = x ? x.sc : null; }); }
     live.sort(function (a, b) { return a.last.localeCompare(b.last, 'uk') || a.first.localeCompare(b.first, 'uk'); });
     if (p.action === 'tv') live = live.map(function (r) { return { n: r.first + ' ' + r.last, av: r.av, pct: r.pct, done: r.done, now: r.now, fin: r.fin }; });
     return out_({ rows: live, test: test, now: Date.now() });
